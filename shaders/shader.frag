@@ -1,8 +1,13 @@
-#version 330
+#version 330 core
 
-//out vec4 col;
+in vec3 color;
+in vec3 normal;
+
+uniform vec3 col;
+
+out vec3 out_color;
 
 void main(){
-  //col = vec4(255,128,0,1);
+  out_color = color;
 }
 

@@ -1,65 +1,70 @@
-#version 120
-#extension GL_EXT_gpu_shader4 : enable
+#version 330 core
 
-attribute vec3 vertex_position;
-attribute vec3 vertex_normal;
-attribute vec3 vertex_color;
+in vec3 vertex_position;
+in vec3 vertex_normal;
+in vec3 vertex_color;
 
-varying vec3 vertex_pos;
-varying vec3 vertex_nor;
-varying vec3 vertex_col;
-//varying float gl_ClipDistance[1];
+flat out vec3 col;
 
 uniform mat4 MVP;
 uniform mat4 M;
+uniform mat4 V;
 
-float coolfFunc3d2(int n);
-float noise3f(vec3 p, float fac);
-float snoise(vec3 v);
+vec3 smoothLight(mat4 light_matrix, vec3 mater_color);
 
 void main(){
-  //float f     = noise3f(vertex_position, 1000) * noise3f(vertex_position, 100);
-  vertex_pos  = vertex_position;// + 0.005 * snoise(vertex_position) * vertex_normal;// + 0.005 * f * vertex_normal;
-  vertex_nor  = vertex_normal;
-  vertex_col = vertex_color;
-  gl_Position = MVP * vec4(vertex_pos, 1);
+  gl_Position = MVP * vec4(vertex_position, 1);
+  vec3 Position_worldspace = (M * vec4(vertex_position,1)).xyz;
+  vec3 color 	= vec3(1,1,1);
+  mat4 LAMP = mat4(
+       vec4(10,0,10, 0),
+       vec4(1,1,1, 0),
+       vec4(0.5,0.25,0.25, 0),
+       vec4(100, 0.5, 0, 0)
+  );  
 
-  //Mise en place du clipping plane
-  //vec4 ClipPlane = vec4(0,1,0,0.1);
-  //gl_ClipDistance[0] = dot(M * vec4(vertex_pos,1), ClipPlane);
+  col = smoothLight(LAMP, color);
 }
 
+vec3 smoothLight(mat4 light_matrix, vec3 mater_color){
+  vec3  light_posit     = light_matrix[0].xyz;
+  vec3  light_color     = light_matrix[1].xyz;
+  vec3  mix_ratio       = light_matrix[2].xyz;
+  float light_power     = light_matrix[3].x;
+  float lobe_size       = light_matrix[3].y;
+  bool  camera_anchored = bool(light_matrix[3].z);
 
-float coolfFunc3d2( int n )
-{
-    n=(n<<13)^n;
-    return float((n*(n*n*15731+789221)+1376312589) & 0x7fffffff);
+  float distance = length(light_posit - (MVP * vec4(vertex_position,1)).xyz);
+  vec3 vertex_position_cameraspace = ( V * M * vec4(vertex_position,1)).xyz;
+  vec3 eye_direction_cameraspace = vec3(0,0,0) - vertex_position_cameraspace;
+  vec3 light_position_cameraspace = ( V * vec4(light_posit,1)).xyz;
+
+  //WORLD OR CAMERA?
+  vec3 light_direction_cameraspace;
+  if(camera_anchored)
+    light_direction_cameraspace = light_posit + eye_direction_cameraspace;
+  else
+    light_direction_cameraspace = light_position_cameraspace + eye_direction_cameraspace;
+
+  vec3 normal_cameraspace = ( V * M * vec4(vertex_normal,0)).xyz;
+  vec3 n = normalize( normal_cameraspace );
+  vec3 l = normalize( light_direction_cameraspace );
+  float cosTheta = clamp( dot( n,l ), 0.,1. );
+
+  vec3 E = normalize(eye_direction_cameraspace);
+  vec3 R = reflect(-l,n);
+  float cosAlpha = clamp( dot( E,R ), 0.,1. );
+
+  vec3 ambi_color = 0.1 *  mater_color;
+  vec3 diff_color = mater_color;
+  vec3 spec_color = 0.5 * (mater_color + vec3(1.0, 1.0, 1.0));
+  vec3 color = mix_ratio.x * ambi_color
+             + mix_ratio.y * diff_color * light_color * light_power * cosTheta        / (distance*distance)
+             + mix_ratio.z * spec_color * light_color * light_power * pow(cosAlpha,lobe_size) / (distance*distance)
+             ;
+
+  return color;
 }
-
-float noise3f( vec3 p, float fac )
-{
-    p = fac * p;
-    ivec3 ip = ivec3(floor(p));
-    vec3 u = fract(p);
-    u = u*u*(3.0-2.0*u);
-
-    int n = ip.x + ip.y*57 + ip.z*113;
-
-    float res = mix(mix(mix(coolfFunc3d2(n+(0+57*0+113*0)),
-                            coolfFunc3d2(n+(1+57*0+113*0)),u.x),
-                        mix(coolfFunc3d2(n+(0+57*1+113*0)),
-                            coolfFunc3d2(n+(1+57*1+113*0)),u.x),u.y),
-                    mix(mix(coolfFunc3d2(n+(0+57*0+113*1)),
-                            coolfFunc3d2(n+(1+57*0+113*1)),u.x),
-                        mix(coolfFunc3d2(n+(0+57*1+113*1)),
-                            coolfFunc3d2(n+(1+57*1+113*1)),u.x),u.y),u.z);
-
-    return 1.0 - res*(1.0/1073741824.0);
-}
-
-
-
-
 
 
 
