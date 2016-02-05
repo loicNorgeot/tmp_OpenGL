@@ -236,6 +236,7 @@ void Object::createGeometry(char * mesh_path){
     std::cout << "Succesfully opened  " << solFile << std::endl;
     GmfCloseMesh(inMeshSol);
 
+    //From palette
     float mini = 1e9;
     float maxi = -1e9;
     for(int i = 0 ; i < values.size() ; i++){
@@ -243,11 +244,34 @@ void Object::createGeometry(char * mesh_path){
       maxi = std::max(maxi, values[i]);
     }
 
-    for(int i = 0 ; i < values.size() ; i++){
-      glm::vec3 col = glm::vec3( (float) (maxi - values[i]) / (maxi - mini) );
-      colors.push_back(col.x);
-      colors.push_back(col.y);
-      colors.push_back(col.z);
+    std::vector<glm::vec4> P;
+    P.push_back(glm::vec4(0.0f,   1.0f,   0.0f,   0.0f));
+    P.push_back(glm::vec4(0.35, 0.75,   0.75, 0.0f));
+    P.push_back(glm::vec4(0.5, 0.0f, 1.0f, 0.0f));
+    P.push_back(glm::vec4(0.65, 0.0f, 0.75, 0.75));
+    P.push_back(glm::vec4(1.0f,   0.0f, 0.0f, 1.0f));
+
+    for(int k = 0 ; k < values.size() ; k++){
+      float val = (maxi - values[k]) / (maxi - mini);
+      for(int i = 0 ; i < P.size() ; i++){
+	if(i==P.size()-1){
+	  float fac       = (val - P[i-1][0])/(P[i][0] - P[i-1][0]);
+	  glm::vec4 col   = (1-fac)*P[i-1] + fac*P[i];
+	  colors.push_back(col[1]);
+	  colors.push_back(col[2]);
+	  colors.push_back(col[3]);
+	}
+	else{
+	  if( (val>=P[i][0]) && (val<=P[i+1][0]) ){
+	    float fac       = (val - P[i][0])/(P[i+1][0] - P[i][0]);
+	    glm::vec4 col   = (1-fac)*P[i] + fac*P[i+1];
+	    colors.push_back(col[1]);
+	    colors.push_back(col[2]);
+	    colors.push_back(col[3]);
+	    break;
+	  }
+	}
+      }
     }
   }
   else{
@@ -269,17 +293,34 @@ void Object::createAndBindBuffers(){
   bindBuffer(1, shaderID, nBuffer, "vertex_normal");
   bindBuffer(2, shaderID, cBuffer, "vertex_color");
   bindIndicesBuffer(iBuffer);
+
+  context->window->controls->lighting = 1;
+  if(nBuffer!=-1)
+    context->window->controls->lighting = 2;
+  if(cBuffer!=-1)
+    context->window->controls->colors = 1;
+    
 }
 	
 void Object::render(){
-  GLenum render = parentScene->parentWindow->controls->render;
+  int structure = parentScene->parentWindow->controls->structure;
   GLenum cull   = parentScene->parentWindow->controls->cull;
   int    ID     = parentScene->parentWindow->parentContext->shader->ID;
+
+  GLenum render;
+  switch(structure){
+  case(0): render = GL_FILL;  break;
+  case(1): render = GL_FILL;  break;
+  case(2): render = GL_LINE;  break;
+  case(3): render = GL_POINT; break;
+  }
 
   //OpenGL statements
   glUseProgram(ID);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
+  glEnable(GL_POLYGON_OFFSET_FILL);
+  glPolygonOffset(1.0,1.0);
   glPolygonMode(GL_FRONT_AND_BACK, render);
 
   //Culling and face/edge/point
@@ -319,26 +360,24 @@ void Object::render(){
   send(ID, parentScene->view->VIEW,             "V");
   send(ID, context->window->controls->lighting, "uLighting");
   send(ID, context->window->controls->colors,   "uColor");
+  send(ID, context->window->controls->structure,"uStructure");
   send(ID, glm::vec3(1,1,1),                    "objectColor");
+  send(ID, 0,                                   "uSecondPass");
 
-  //Second pass for simple color
-  if(render == GL_FILL && context->window->controls->lighting == 0){
-    glBindVertexArray(VAO);
+  //Drawing
+  glBindVertexArray(VAO);
+  if(context->window->controls->structure==1 || ((context->window->controls->structure == 0) && (context->window->controls->colors == 0) && (context->window->controls->lighting == 0))){
     send(ID, glm::vec3(0,0,0), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    send(ID, 1,                "uSecondPass");
     send(ID, glm::vec3(1,1,1), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
-    glBindVertexArray(0);  
   }
-  else{
-    //Drawing
-    glBindVertexArray(VAO);
+  else
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
-    glBindVertexArray(0);
-  }
-    
-
-  
+  glBindVertexArray(0);  
 }	

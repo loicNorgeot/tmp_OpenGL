@@ -3,8 +3,8 @@
 View::View(Scene* scene){
   parentScene = scene;
   fov = glm::radians(45.0f);
-  min = 0.1f;
-  max = 100.0f;
+  min = 0.005f;
+  max = 20.0f;
   cam = glm::vec3(1);
   look = glm::vec3(0,0,0);
   up = glm::normalize(glm::vec3(-1,1,-1));

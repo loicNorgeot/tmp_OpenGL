@@ -1,25 +1,19 @@
-#include "ogl.h"
+#include "commons.h"
 
 CONTEXT * context;
 
 int main(int argc, char** argv){
 
-  if(argc>2){
-    std::cout << "Usage : cube [file.mesh]" << std::endl;
+  if(argc>3){
+    std::cout << "Usage : cube [file.mesh] [-fs]" << std::endl;
     exit(-1);
   }
 
-  initGLFW();
-
-  context = new CONTEXT();
-
-  initGLEW();
-
-  context->init();
+  context = new CONTEXT( (argc == 3 && std::string(argv[2]).compare("-fs") == 0)? FULLSCREEN : WINDOWED);
 
   if(argc==1)
     context->window->scene->object = new Object(context->window->scene);
-  else if(argc==2)
+  else
     context->window->scene->object = new Object(context->window->scene, argv[1]);
 
   while( ! context->shouldStop() ){

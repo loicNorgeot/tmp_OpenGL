@@ -8,7 +8,7 @@ public:
   Window* window;
   Shader* shader;
 
-  CONTEXT();
+  CONTEXT(MODE mode);
   void init();
   void render();
   bool shouldStop();

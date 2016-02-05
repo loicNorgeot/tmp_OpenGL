@@ -49,6 +49,8 @@ class View;
 class Scene;
 class CONTEXT;
 
+enum MODE{WINDOWED, FULLSCREEN};
+
 extern CONTEXT * context;
 
 #include "context.h"

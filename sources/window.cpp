@@ -1,6 +1,6 @@
 #include "window.h"
 
-Window::Window(CONTEXT * context, int resX, int resY){
+Window::Window(CONTEXT * context, MODE windowMode, int resX, int resY){
   parentContext = context;
 
   glfwWindowHint(GLFW_SAMPLES, 4);
@@ -9,10 +9,11 @@ Window::Window(CONTEXT * context, int resX, int resY){
   glfwWindowHint( GLFW_OPENGL_PROFILE,        GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-  //Full screen
-  //const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-  //window = glfwCreateWindow(mode->width, mode->height, "TEST", glfwGetPrimaryMonitor(), NULL);
-  window = glfwCreateWindow(resX, resY, "TEST", NULL, NULL);
+  const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+  if(windowMode == FULLSCREEN)
+    window = glfwCreateWindow(mode->width, mode->height, "TEST", glfwGetPrimaryMonitor(), NULL);
+  else if(windowMode == WINDOWED)
+    window = glfwCreateWindow(resX, resY, "TEST", NULL, NULL);
   glfwMakeContextCurrent(window);
 
   if(window==NULL){

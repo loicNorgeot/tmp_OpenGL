@@ -9,11 +9,12 @@ class Controls{
   glm::vec2 oldPos;
   glm::vec2 pos;
 
-  GLenum render;
+  
   GLenum cull;
   bool   animate;
   bool   ortho;
 
+  int    structure;
   int    lighting;
   int    colors;
 

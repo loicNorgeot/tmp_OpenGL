@@ -6,14 +6,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       glfwSetWindowShouldClose(window, GL_TRUE);
 
     if(key == GLFW_KEY_R){
-      switch(context->window->controls->render){
-      case(GL_POINT):
-	context->window->controls->render = GL_LINE;break;
-      case(GL_LINE):
-	context->window->controls->render = GL_FILL;break;
-      case(GL_FILL):
-	context->window->controls->render = GL_POINT;break;
-      }
+      context->window->controls->structure++;
+      context->window->controls->structure = context->window->controls->structure % 4;
     }
 
     if(key == GLFW_KEY_X){
@@ -137,12 +131,14 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 
 Controls::Controls(Window * window){
   parentWindow = window;
-  render = GL_FILL;
-  cull   = GL_BACK;
+  
+  cull    = GL_BACK;
   animate = false;
   ortho   = false;
-  colors  = 0;
-  lighting = 0;
+
+  structure = 0;
+  colors    = 0;
+  lighting  = 0;
   init();
 }
 

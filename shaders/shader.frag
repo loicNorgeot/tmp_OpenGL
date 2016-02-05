@@ -4,6 +4,14 @@ in vec3 frag_position;
 in vec3 frag_color;
 in vec3 frag_normal;
 
+//Structure options:
+// 0 - filled
+// 1 - filled with wireframe
+// 2 - wireframe only
+// 3 - points only
+uniform int uStructure;
+uniform int uSecondPass;
+
 //Lights options:
 // 0 - no shading
 // 1 - flat shading
@@ -49,6 +57,9 @@ void main(){
     temp_color = frag_color;
   else if(uColor == 2)
     temp_color = vec3( abs(frag_normal.x), abs(frag_normal.y), abs(frag_normal.z) );
+
+  if(uStructure == 1 && uSecondPass==0)
+    temp_color = objectColor;
 
   //if(uLighting == 0)
   if(uLighting == 1)
