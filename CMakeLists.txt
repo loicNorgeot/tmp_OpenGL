@@ -18,10 +18,10 @@ if(common)
   message(STATUS "Found Commons: ${common}")
 endif()
 
-#find_library( glew   NAMES GLEW    HINTS "$ENV{HOME}/lib")
-#if(glew)
-#  message(STATUS "Found GLEW: ${glew}")
-#endif()
+find_library( glew   NAMES GLEW    HINTS "$ENV{HOME}/lib")
+if(glew)
+  message(STATUS "Found GLEW: ${glew}")
+endif()
 
 find_library( glfw   NAMES glfw    HINTS "$ENV{HOME}/lib" REQUIRED)
 if(common)
@@ -31,11 +31,11 @@ endif()
 find_package( OpenGL REQUIRED)
 find_package( X11    REQUIRED)
 
-#set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew})
+set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew})
 
-find_package( GLEW REQUIRED)
-set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${GLEW_LIBRARIES})
-include_directories(${GLEW_INCLUDE_DIRS})
+#find_package( GLEW REQUIRED)
+#set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${GLEW_LIBRARIES})
+#include_directories(${GLEW_INCLUDE_DIRS})
 
 ################################################################
 #Library

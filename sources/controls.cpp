@@ -6,29 +6,31 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       glfwSetWindowShouldClose(window, GL_TRUE);
 
     if(key == GLFW_KEY_R){
-      GLenum render = context->window->controls->render;
-      GLenum tmp;
-      switch(render){
+      switch(context->window->controls->render){
       case(GL_POINT):
-	tmp = GL_LINE;break;
+	context->window->controls->render = GL_LINE;break;
       case(GL_LINE):
-	tmp = GL_FILL;break;
+	context->window->controls->render = GL_FILL;break;
       case(GL_FILL):
-	tmp = GL_POINT;break;
+	context->window->controls->render = GL_POINT;break;
       }
-      context->window->controls->render = tmp;
     }
 
-    if(key == GLFW_KEY_C){
+    if(key == GLFW_KEY_X){
       if(context->window->controls->cull == GL_BACK)
 	context->window->controls->cull = GL_FRONT;
       else
 	context->window->controls->cull = GL_BACK;
     }
 
-    if(key == GLFW_KEY_S){
-      context->window->controls->shader++;
-      context->window->controls->shader = context->window->controls->shader % 5;
+    if(key == GLFW_KEY_C){
+      context->window->controls->colors++;
+      context->window->controls->colors = context->window->controls->colors % 3;
+    }
+
+    if(key == GLFW_KEY_L){
+      context->window->controls->lighting++;
+      context->window->controls->lighting = context->window->controls->lighting % 3;
     }
 
     if(key == GLFW_KEY_Q){
@@ -38,22 +40,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       context->window->controls->ortho = !context->window->controls->ortho;
       context->window->scene->view->update();
     }
-    /*
-    if(key == GLFW_KEY_F){
-      const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-      int width, height;
-      glfwGetWindowSize(window, &width, &height);
-
-      if(width != mode->width){
-	glfwSetWindowSize(window, mode->width, mode->height);
-	glfwSetWindowPos(window, 0, 0);
-      }
-      else{
-	glfwSetWindowSize(window, 640, 480);
-	glfwSetWindowPos(window, 1200, 400);
-      }
-    }
-    */
   }
 }
 
@@ -155,7 +141,8 @@ Controls::Controls(Window * window){
   cull   = GL_BACK;
   animate = false;
   ortho   = false;
-  shader  = 0;
+  colors  = 0;
+  lighting = 0;
   init();
 }
 

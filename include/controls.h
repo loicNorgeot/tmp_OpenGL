@@ -13,7 +13,9 @@ class Controls{
   GLenum cull;
   bool   animate;
   bool   ortho;
-  int    shader;
+
+  int    lighting;
+  int    colors;
 
   Window * parentWindow;
 

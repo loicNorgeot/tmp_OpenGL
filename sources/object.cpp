@@ -115,10 +115,6 @@ void Object::createGeometry(char * mesh_path){
   std::vector<Normal>          normal;
   std::vector<NormalAtVertex>  NormalAtVertices;
 
-  
-
-  
-  
   //Lecture du .mesh
   inm = GmfOpenMesh(mesh_path,GmfRead,&ver,&dim);
   if ( !inm ){
@@ -134,10 +130,16 @@ void Object::createGeometry(char * mesh_path){
     std::cout << "No points found in mesh file" << mesh_path << std::endl;
     exit(-1);
   }
+  if( !nt ){
+    std::cout << "No triangles found in mesh file" << mesh_path << std::endl;
+    exit(-1);
+  }
   point.resize(np);
   tria.resize(nt);
-  normal.resize(np);
-  NormalAtVertices.resize(nNAtV + 1);
+  if(np)
+    normal.resize(np);
+  if(nNAtV)
+    NormalAtVertices.resize(nNAtV + 1);
 
   GmfGotoKwd(inm,GmfVertices);
   for (k=0; k<np; k++){
@@ -194,13 +196,16 @@ void Object::createGeometry(char * mesh_path){
 		&NormalAtVertices[k].inds[0],
 		&NormalAtVertices[k].inds[1]);
   }
-  for(int i = 0 ; i < vertices.size() ; i++){normals.push_back(0.0f);}
-  for(int i = 0 ; i < NormalAtVertices.size() - 1 ; i++){
-    int indV = NormalAtVertices[i].inds[0] - 1;
-    int indN = NormalAtVertices[i].inds[1] - 1;
-    normals[3 * indV + 0] =       normal[indN].n[0];
-    normals[3 * indV + 1] = inv * normal[indN].n[1];
-    normals[3 * indV + 2] = inv * normal[indN].n[2];
+  if(nn && nNAtV){
+    for(int i = 0 ; i < vertices.size() ; i++)
+      normals.push_back(0.0f);
+    for(int i = 0 ; i < NormalAtVertices.size() - 1 ; i++){
+      int indV = NormalAtVertices[i].inds[0] - 1;
+      int indN = NormalAtVertices[i].inds[1] - 1;
+      normals[3 * indV + 0] =       normal[indN].n[0];
+      normals[3 * indV + 1] = inv * normal[indN].n[1];
+      normals[3 * indV + 2] = inv * normal[indN].n[2];
+    }
   }
 
   std::cout << "Succesfully opened  " << mesh_path << std::endl;
@@ -269,7 +274,15 @@ void Object::createAndBindBuffers(){
 void Object::render(){
   GLenum render = parentScene->parentWindow->controls->render;
   GLenum cull   = parentScene->parentWindow->controls->cull;
+  int    ID     = parentScene->parentWindow->parentContext->shader->ID;
 
+  //OpenGL statements
+  glUseProgram(ID);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  glPolygonMode(GL_FRONT_AND_BACK, render);
+
+  //Culling and face/edge/point
   if(cull == GL_BACK){
     if(render == GL_FILL){
       glEnable(GL_CULL_FACE);
@@ -278,39 +291,54 @@ void Object::render(){
     else
       glDisable(GL_CULL_FACE);
   }
-
   else if(cull == GL_FRONT){
     glEnable(GL_CULL_FACE);
     glCullFace(cull);
   }
-  /*
-  if(render == GL_FILL){
-    glEnable(GL_CULL_FACE);
-    glCullFace(cull);
-  }
-  else
-    glDisable(GL_CULL_FACE);
-  */
 
-  glEnable(GL_DEPTH_TEST);
-  glDepthFunc(GL_LESS);
-  glPolygonMode(GL_FRONT_AND_BACK, render);
-
+  //Transformations
   if(context->window->controls->animate)
     MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
-
   glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
 
-  int ID = parentScene->parentWindow->parentContext->shader->ID;
-  glUseProgram(ID);
-    
-  send(ID, MVP, 	                      "MVP");
-  send(ID, MODEL, 	                      "M");
-  send(ID, parentScene->view->VIEW,           "V");
-  send(ID, context->window->controls->shader, "shader");
-  send(ID, glm::vec3(1,0,0),                  "col");
+  //According parameters to the mesh
+  if(cBuffer == -1){
+    if(context->window->controls->colors == 1)
+      context->window->controls->colors = 2;
+  }
+  if(nBuffer == -1){
+    if(context->window->controls->lighting == 2)
+      context->window->controls->lighting = 0;
+    if(context->window->controls->colors == 2)
+      context->window->controls->colors = 0;
+  }
+ 
+  //Uniform sending
+  send(ID, MVP, 	                        "MVP");
+  send(ID, MODEL, 	                        "M");
+  send(ID, parentScene->view->VIEW,             "V");
+  send(ID, context->window->controls->lighting, "uLighting");
+  send(ID, context->window->controls->colors,   "uColor");
+  send(ID, glm::vec3(1,1,1),                    "objectColor");
 
-  glBindVertexArray(VAO);
-  glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
-  glBindVertexArray(0);  
+  //Second pass for simple color
+  if(render == GL_FILL && context->window->controls->lighting == 0){
+    glBindVertexArray(VAO);
+    send(ID, glm::vec3(0,0,0), "objectColor");
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    send(ID, glm::vec3(1,1,1), "objectColor");
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    glBindVertexArray(0);  
+  }
+  else{
+    //Drawing
+    glBindVertexArray(VAO);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    glBindVertexArray(0);
+  }
+    
+
+  
 }	
