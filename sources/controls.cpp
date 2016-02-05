@@ -25,6 +25,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       else
 	context->window->controls->cull = GL_BACK;
     }
+
+    if(key == GLFW_KEY_S){
+      context->window->controls->shader++;
+      context->window->controls->shader = context->window->controls->shader % 5;
+    }
+
+    if(key == GLFW_KEY_Q){
+      context->window->controls->animate = !context->window->controls->animate;
+    }
+    if(key == GLFW_KEY_KP_5){
+      context->window->controls->ortho = !context->window->controls->ortho;
+      context->window->scene->view->update();
+    }
     /*
     if(key == GLFW_KEY_F){
       const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -140,6 +153,9 @@ Controls::Controls(Window * window){
   parentWindow = window;
   render = GL_FILL;
   cull   = GL_BACK;
+  animate = false;
+  ortho   = false;
+  shader  = 0;
   init();
 }
 

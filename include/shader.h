@@ -12,7 +12,7 @@ public:
     ID = 0;
     parentContext = context;
   }
-  void 		load(const char * vert_path, const char * frag_path);
+  void 		load(std::string vert_path, std::string frag_path, std::string functions_file_path);
 };
 
 #endif

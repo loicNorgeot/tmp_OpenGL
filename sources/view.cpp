@@ -12,6 +12,11 @@ View::View(Scene* scene){
 }
 void View::update(){
   glfwGetWindowSize(parentScene->parentWindow->window, &w, &h);
-  PROJ = glm::perspective(fov, (float)w / (float)h, min, max);
+  
+  if(context->window->controls->ortho)
+    PROJ = glm::ortho(-0.5f*(float)w/(float)h,0.5f*(float)w/(float)h,-0.5f,0.5f,min,max);
+  else
+    PROJ = glm::perspective(fov, (float)w / (float)h, min, max);
+
   VIEW = glm::lookAt(cam, look, up);
 }

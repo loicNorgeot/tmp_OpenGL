@@ -14,15 +14,33 @@ include_directories(        "~/include/" "include/")
 #Dependencies
 ################################################################
 find_library( common NAMES Commons HINTS "$ENV{HOME}/lib")
-find_library( glfw   NAMES glfw    HINTS "$ENV{HOME}/lib")
-find_library( glew   NAMES GLEW    HINTS "$ENV{HOME}/lib")
+if(common)
+  message(STATUS "Found Commons: ${common}")
+endif()
+
+#find_library( glew   NAMES GLEW    HINTS "$ENV{HOME}/lib")
+#if(glew)
+#  message(STATUS "Found GLEW: ${glew}")
+#endif()
+
+find_library( glfw   NAMES glfw    HINTS "$ENV{HOME}/lib" REQUIRED)
+if(common)
+  message(STATUS "Found GLFW: ${glfw}")
+endif()
+
 find_package( OpenGL REQUIRED)
 find_package( X11    REQUIRED)
-set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew})
+
+#set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew})
+
+find_package( GLEW REQUIRED)
+set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${GLEW_LIBRARIES})
+include_directories(${GLEW_INCLUDE_DIRS})
 
 ################################################################
 #Library
 ################################################################
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/include/commons.h.in ${CMAKE_CURRENT_SOURCE_DIR}/include/commons.h)
 file(GLOB_RECURSE source_files sources/* include/*)
 add_library(OGL SHARED ${source_files})
 target_link_libraries(OGL ${CORELIBS})

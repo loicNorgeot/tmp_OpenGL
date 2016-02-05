@@ -62,7 +62,7 @@ void Object::createGeometry(){
     -1.0,  1.0, -1.0,
   };
   for(int i = 0 ; i < vertices.size() ; i++)
-    vertices[i] = vertices[i];
+    vertices[i] = 0.5f * vertices[i];
   nbVertices = vertices.size()/3;
   indices = std::vector<int>{
     0, 1, 2,
@@ -115,47 +115,7 @@ void Object::createGeometry(char * mesh_path){
   std::vector<Normal>          normal;
   std::vector<NormalAtVertex>  NormalAtVertices;
 
-  //Lecture du .sol
-  std::string solFile = meshFile.substr(0, meshFile.size()-5) + ".sol";
-  int ver2, dim2;
-  int inMeshSol = 0;
-  inMeshSol = GmfOpenMesh((char*)(solFile.c_str()), GmfRead, &ver2, &dim2);
-
-  if(inMeshSol){
-    int type, offset, typtab[GmfMaxTyp];
-    int nSol      = GmfStatKwd(inMeshSol, GmfSolAtVertices, &type, &offset, &typtab);
-    std::vector<float> values(nSol);
-    GmfGotoKwd(inMeshSol, GmfSolAtVertices);
-    for(int i = 0 ; i< nSol ; i++){
-      double val;
-      if ( ver2 == GmfFloat ){
-	GmfGetLin(inMeshSol, GmfSolAtVertices, &values[i]);
-      }
-      else{
-	GmfGetLin(inMeshSol, GmfSolAtVertices, &val);
-	values[i] = val;
-      }
-    }
-    GmfCloseMesh(inMeshSol);
-    std::cout << "Succesfully opened " << solFile << std::endl;
-
-    float mini = 1e9;
-    float maxi = -1e9;
-    for(int i = 0 ; i < values.size() ; i++){
-      mini = std::min(mini, values[i]);
-      maxi = std::max(maxi, values[i]);
-    }
-
-    for(int i = 0 ; i < values.size() ; i++){
-      glm::vec3 col = glm::vec3( (float) (maxi - values[i]) / (maxi - mini) );
-      colors.push_back(col.x);
-      colors.push_back(col.y);
-      colors.push_back(col.z);
-    }
-  }
-  else{
-    std::cout << "No .sol file corresponding to " << meshFile << std::endl;
-  }
+  
 
   
   
@@ -243,9 +203,51 @@ void Object::createGeometry(char * mesh_path){
     normals[3 * indV + 2] = inv * normal[indN].n[2];
   }
 
-  std::cout << "Succesfully opened " << mesh_path << std::endl;
-
+  std::cout << "Succesfully opened  " << mesh_path << std::endl;
   GmfCloseMesh(inm);
+
+
+  //Lecture du .sol
+  std::string solFile = meshFile.substr(0, meshFile.size()-5) + ".sol";
+  int ver2, dim2;
+  int inMeshSol = 0;
+  inMeshSol = GmfOpenMesh((char*)(solFile.c_str()), GmfRead, &ver2, &dim2);
+
+  if(inMeshSol){
+    int type, offset, typtab[GmfMaxTyp];
+    int nSol      = GmfStatKwd(inMeshSol, GmfSolAtVertices, &type, &offset, &typtab);
+    std::vector<float> values(nSol);
+    GmfGotoKwd(inMeshSol, GmfSolAtVertices);
+    for(int i = 0 ; i< nSol ; i++){
+      double val;
+      if ( ver2 == GmfFloat ){
+	GmfGetLin(inMeshSol, GmfSolAtVertices, &values[i]);
+      }
+      else{
+	GmfGetLin(inMeshSol, GmfSolAtVertices, &val);
+	values[i] = val;
+      }
+    }
+    std::cout << "Succesfully opened  " << solFile << std::endl;
+    GmfCloseMesh(inMeshSol);
+
+    float mini = 1e9;
+    float maxi = -1e9;
+    for(int i = 0 ; i < values.size() ; i++){
+      mini = std::min(mini, values[i]);
+      maxi = std::max(maxi, values[i]);
+    }
+
+    for(int i = 0 ; i < values.size() ; i++){
+      glm::vec3 col = glm::vec3( (float) (maxi - values[i]) / (maxi - mini) );
+      colors.push_back(col.x);
+      colors.push_back(col.y);
+      colors.push_back(col.z);
+    }
+  }
+  else{
+    std::cout << "Failed to open .sol " << solFile << std::endl;
+  }
 }
 
 void Object::createAndBindBuffers(){
@@ -268,25 +270,45 @@ void Object::render(){
   GLenum render = parentScene->parentWindow->controls->render;
   GLenum cull   = parentScene->parentWindow->controls->cull;
 
+  if(cull == GL_BACK){
+    if(render == GL_FILL){
+      glEnable(GL_CULL_FACE);
+      glCullFace(cull);
+    }
+    else
+      glDisable(GL_CULL_FACE);
+  }
+
+  else if(cull == GL_FRONT){
+    glEnable(GL_CULL_FACE);
+    glCullFace(cull);
+  }
+  /*
   if(render == GL_FILL){
     glEnable(GL_CULL_FACE);
     glCullFace(cull);
   }
   else
     glDisable(GL_CULL_FACE);
+  */
 
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glPolygonMode(GL_FRONT_AND_BACK, render);
 
+  if(context->window->controls->animate)
+    MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
+
   glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
 
   int ID = parentScene->parentWindow->parentContext->shader->ID;
-  glUseProgram(ID);    
-  send(ID, MVP, 	"MVP");
-  send(ID, MODEL, 	"M");
-  send(ID, parentScene->view->VIEW, 	"V");
-  send(ID, glm::vec3(1,0,0), "col");
+  glUseProgram(ID);
+    
+  send(ID, MVP, 	                      "MVP");
+  send(ID, MODEL, 	                      "M");
+  send(ID, parentScene->view->VIEW,           "V");
+  send(ID, context->window->controls->shader, "shader");
+  send(ID, glm::vec3(1,0,0),                  "col");
 
   glBindVertexArray(VAO);
   glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);

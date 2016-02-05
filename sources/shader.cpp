@@ -1,6 +1,6 @@
 #include "shader.h"
 
-void Shader::load(const char * vertex_file_path, const char * fragment_file_path){
+void Shader::load(std::string vertex_file_path, std::string fragment_file_path, std::string functions_file_path){
   // Create the shaders
   GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
   GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -15,7 +15,7 @@ void Shader::load(const char * vertex_file_path, const char * fragment_file_path
     VertexShaderStream.close();
   }
   else{
-    printf("Impossible to open %s.\n", vertex_file_path);
+    std::cout << "Impossible to open " << vertex_file_path << std::endl;
     exit(-1);
   }
 
@@ -29,9 +29,26 @@ void Shader::load(const char * vertex_file_path, const char * fragment_file_path
     FragmentShaderStream.close();
   }
   else{
-    printf("Impossible to open %s.\n", fragment_file_path);
+    std::cout << "Impossible to open " << fragment_file_path << std::endl;
     exit(-1);
   }
+
+  //Read the Functions from the functions file
+  std::string functionsCode;
+  std::ifstream functionsStream(functions_file_path, std::ios::in);
+  if(functionsStream.is_open()){
+    std::string Line = "";
+    while(getline(functionsStream, Line))
+      functionsCode += "\n" + Line;
+    functionsStream.close();
+  }
+  else{
+    std::cout << "Impossible to open " << functions_file_path << std::endl;
+    exit(-1);
+  }
+
+  //VertexShaderCode += functionsCode;
+  FragmentShaderCode += functionsCode;
 
   GLint Result = GL_FALSE;
   int InfoLogLength=0;
@@ -48,7 +65,7 @@ void Shader::load(const char * vertex_file_path, const char * fragment_file_path
     printf("%s\n", &VertexShaderErrorMessage[0]);
     exit(-1);
   }
-  printf("Succesfully compiled shader : %s\n", vertex_file_path);
+  std::cout << "Succesfully compiled shader : " << vertex_file_path << std::endl;
 
   // Compile Fragment Shader
   char const * FragmentSourcePointer = FragmentShaderCode.c_str();
@@ -62,7 +79,7 @@ void Shader::load(const char * vertex_file_path, const char * fragment_file_path
     printf("%s\n", &FragmentShaderErrorMessage[0]);
     exit(-1);
   }
-  printf("Succesfully compiled shader : %s\n", fragment_file_path);
+  std::cout << "Succesfully compiled shader : " << fragment_file_path << std::endl;
 
   // Link the program
   GLuint ProgramID = glCreateProgram();
@@ -78,7 +95,7 @@ void Shader::load(const char * vertex_file_path, const char * fragment_file_path
     printf("%s\n", &ProgramErrorMessage[0]);
     exit(-1);
   }
-  printf("Succesfully linked the shader program\n");
+  std::cout << "Succesfully linked the shader program" << std::endl;
 	
   glDetachShader(ProgramID, VertexShaderID);
   glDetachShader(ProgramID, FragmentShaderID);

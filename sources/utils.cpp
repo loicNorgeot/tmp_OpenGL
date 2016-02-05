@@ -61,13 +61,15 @@ void send(int ID, glm::mat4 &m, char* name){
   int id = glGetUniformLocation(ID, name);
   glUniformMatrix4fv(id, 1, GL_FALSE, &m[0][0]);
 }
-
 void send(int ID, glm::vec3 v, char* name){
   int id = glGetUniformLocation(ID, name);
   glUniform3f(id, v.x, v.y, v.z);
 }
-
 void send(int ID, float f, char* name){
   int id = glGetUniformLocation(ID, name);
   glUniform1f(id, f);
+}
+void send(int ID, int i, char* name){
+  int id = glGetUniformLocation(ID, name);
+  glUniform1i(id, i);
 }

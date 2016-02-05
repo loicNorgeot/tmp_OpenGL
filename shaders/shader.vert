@@ -4,17 +4,17 @@ in vec3 vertex_position;
 in vec3 vertex_normal;
 in vec3 vertex_color;
 
-out vec3 color;
-out vec3 normal;
+out vec3 frag_position;
+out vec3 frag_color;
+out vec3 frag_normal;
 
-uniform mat4 M;
-uniform mat4 V;
 uniform mat4 MVP;
 
 void main(){
   gl_Position = MVP * vec4(vertex_position, 1);
-  color = vertex_color;
-  normal = vertex_normal;
+  frag_position = vertex_position;
+  frag_color    = vertex_color;
+  frag_normal   = vertex_normal;
 }
 
 

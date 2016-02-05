@@ -19,6 +19,7 @@ void bindBuffer(int attrib, int ID, GLuint buffer, char* name);
 void bindIndicesBuffer(GLuint buffer);
 void freeBuffer();
 void send(int ID, float     f, 	char* name);
+void send(int ID, int       i, 	char* name);
 void send(int ID, glm::vec3 v, 	char* name);
 void send(int ID, glm::mat4 &m, char* name);
 

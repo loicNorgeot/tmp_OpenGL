@@ -6,6 +6,8 @@ CONTEXT::CONTEXT(){
 }
 void CONTEXT::init(){
   window->init();
+  shader->load(shadersPath + "shader.vert", shadersPath + "shader.frag", shadersPath + "shader.functions");
+
 }
 bool CONTEXT::shouldStop(){
   bool goesOn = glfwGetKey(window->window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window->window) == 0;

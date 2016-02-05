@@ -18,6 +18,8 @@
 #include <iostream>
 #include <fstream>
 
+const std::string shadersPath = "${CMAKE_CURRENT_SOURCE_DIR}/shaders/";
+
 #include "utils.h"
 
 //Debugging

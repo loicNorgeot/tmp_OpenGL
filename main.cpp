@@ -4,6 +4,11 @@ CONTEXT * context;
 
 int main(int argc, char** argv){
 
+  if(argc>2){
+    std::cout << "Usage : cube [file.mesh]" << std::endl;
+    exit(-1);
+  }
+
   initGLFW();
 
   context = new CONTEXT();
@@ -11,8 +16,11 @@ int main(int argc, char** argv){
   initGLEW();
 
   context->init();
-  context->shader->load("/home/norgeot/dev/tmp_OpenGL/shaders/shader.vert", "/home/norgeot/dev/tmp_OpenGL/shaders/shader.frag");
-  //context->shader->load("/home/norgeot/dev/tmp_OpenGL/shaders/smooth.vert", "/home/norgeot/dev/tmp_OpenGL/shaders/smooth.frag");
+
+  if(argc==1)
+    context->window->scene->object = new Object(context->window->scene);
+  else if(argc==2)
+    context->window->scene->object = new Object(context->window->scene, argv[1]);
 
   while( ! context->shouldStop() ){
     context->render();
