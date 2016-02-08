@@ -3,18 +3,17 @@
 extern "C" {
 #include <libmesh5.h>
 }
+
 #define FLOAT_MAX 1.e20
-/*
-  Usually it is scale * rotation * translation. 
-  However, if you want to rotate an object around a certain point,
-  then it is scale * point_translation * rotation * object_translation.
-*/
+float alpha = 0.0f;
+
 
 Object::Object(Scene* scene){
   parentScene = scene;
   createGeometry();
   computeBoundingBox();
   createAndBindBuffers();
+  alpha = 3.14159f / 2;
 }
 Object::Object(Scene* scene, char * mesh_path){
   parentScene = scene;
@@ -23,6 +22,7 @@ Object::Object(Scene* scene, char * mesh_path){
   scaleAndTranslate();
   createAndBindBuffers();
   MODEL = glm::mat4(1);
+  alpha = 3.14159f / 2;
 }
 
 void Object::computeBoundingBox(){
@@ -301,8 +301,33 @@ void Object::createAndBindBuffers(){
     context->window->controls->colors = 1;
     
 }
+
 	
 void Object::render(){
+  /*
+  if(cBuffer!=-1){
+    for(int i = 0 ; i < colors.size() ; i+=3){
+      glm::vec3 col(colors[i], colors[i+1], colors[i+2]);
+      col = glm::rotate(col, 0.01f, glm::vec3(1,1,1));
+      for(int j = 0 ; j < 3 ; j++)
+	colors[i+j] = col[j];
+    }
+    updateBuffer(cBuffer, &colors);
+  }
+  
+  if(nBuffer != -1){
+    alpha += 0.025f;
+    for(int i = 0 ; i < vertices.size() ; i+=3){
+      glm::vec3 pos(vertices[i], vertices[i+1], vertices[i+2]);
+      glm::vec3 nor(normals[i], normals[i+1], normals[i+2]);
+      pos += 0.00025f*std::sin(alpha) * nor;
+      for(int j = 0 ; j < 3 ; j++)
+        vertices[i+j] = pos[j];
+    }
+    updateBuffer(mBuffer, &vertices);
+  }
+  */
+
   int structure = parentScene->parentWindow->controls->structure;
   GLenum cull   = parentScene->parentWindow->controls->cull;
   int    ID     = parentScene->parentWindow->parentContext->shader->ID;

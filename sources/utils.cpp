@@ -21,13 +21,18 @@ void glError(std::string name){
 
 
 //BUFFER OPERATIONS
+void updateBuffer(GLuint pBuffer, std::vector<float> *data){
+  glBindBuffer( GL_ARRAY_BUFFER, pBuffer);
+  glBufferData( GL_ARRAY_BUFFER, sizeof(float) * data->size(), &(*data)[0], GL_STREAM_DRAW);
+  glBindBuffer( GL_ARRAY_BUFFER, 0);
+}
 void    createBuffer(GLuint *pBuffer, std::vector<float> *data){
   if(data->size() == 0)
     *pBuffer = -1;
   else{
     glGenBuffers( 1,               pBuffer);
     glBindBuffer( GL_ARRAY_BUFFER, *pBuffer);
-    glBufferData( GL_ARRAY_BUFFER, sizeof(float) * data->size(), &(*data)[0], GL_STATIC_DRAW);
+    glBufferData( GL_ARRAY_BUFFER, sizeof(float) * data->size(), &(*data)[0], GL_STREAM_DRAW);
   }
 }
 

@@ -95,6 +95,31 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
     context->window->scene->object->MODEL = glm::translate(glm::mat4(1) , xTrans + yTrans) * context->window->scene->object->MODEL;
   }
   
+  if(context->window->controls->buttons[2]){
+    float dY = ypos - context->window->controls->oldPos.y;
+    float dX = xpos - context->window->controls->oldPos.x;
+
+    std::vector<float> * pVertices = &(context->window->scene->object->vertices);
+    std::vector<float> * pNormals  = &(context->window->scene->object->normals);
+    for(int i = 0 ; i < pVertices->size() ; i+=3){
+      glm::vec3 pos((*pVertices)[i], (*pVertices)[i+1], (*pVertices)[i+2]);
+      glm::vec3 nor((*pNormals)[i], (*pNormals)[i+1], (*pNormals)[i+2]);
+      pos += 0.00025f * dY * nor;
+      for(int j = 0 ; j < 3 ; j++)
+	(*pVertices)[i+j] = pos[j];
+    }
+    updateBuffer(context->window->scene->object->mBuffer, pVertices);
+
+    
+    std::vector<float> * pColors = &(context->window->scene->object->colors);
+    for(int i = 0 ; i < pColors->size() ; i+=3){
+      glm::vec3 col( (*pColors)[i], (*pColors)[i+1], (*pColors)[i+2]);
+      col = glm::rotate(col, 0.01f * dX, glm::vec3(1,1,1));
+      for(int j = 0 ; j < 3 ; j++)
+	(*pColors)[i+j] = col[j];
+    }
+    updateBuffer(context->window->scene->object->cBuffer, pColors);
+  }
 
   context->window->controls->oldPos = pos;
 }

@@ -11,6 +11,7 @@ void glError(std::string name);
 //GPU buffers and bindings
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 void createVAO(GLuint* pVAO);
+void updateBuffer(GLuint  pBuffer, std::vector<float> *data);
 void createBuffer(GLuint *pBuffer, std::vector<float> *data);
 void createBuffer(GLuint *pBuffer, std::vector<short> *data);
 void createBuffer(GLuint *pBuffer, std::vector<int>   *data);
