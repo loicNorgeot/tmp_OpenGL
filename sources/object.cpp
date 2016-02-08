@@ -64,7 +64,7 @@ void Object::createGeometry(){
   for(int i = 0 ; i < vertices.size() ; i++)
     vertices[i] = 0.5f * vertices[i];
   nbVertices = vertices.size()/3;
-  indices = std::vector<int>{
+  indTri = std::vector<int>{
     0, 1, 2,
     2, 3, 0,
     3, 2, 6,
@@ -104,107 +104,84 @@ void Object::createGeometry(char * mesh_path){
   std::string meshFile    = std::string(mesh_path);
 
   //Initialisation
-  int                     np,nt,nn,dim,ver, nNAtV;
-  Point                   *ppt;
-  Tria                    *pt;
-  double                  *n,dd;
-  float                   fp1,fp2,fp3;
-  int                     k,inm;
-  std::vector<Point>           point;
-  std::vector<Tria>            tria;
-  std::vector<Normal>          normal;
-  std::vector<NormalAtVertex>  NormalAtVertices;
+  int nPts, nTri, nNor, nTet, nNorAtV;
+  int ver, dim;
+  double* tmp = new double[3];
 
-  //Lecture du .mesh
-  inm = GmfOpenMesh(mesh_path,GmfRead,&ver,&dim);
+  //READING .mesh
+  int inm = GmfOpenMesh(mesh_path,GmfRead,&ver,&dim);
   if ( !inm ){
     std::cout << "Unable to open mesh file " << mesh_path << std::endl;
     exit(-1);
   }
 
-  np    = GmfStatKwd(inm, GmfVertices);
-  nt    = GmfStatKwd(inm, GmfTriangles);
-  nn    = GmfStatKwd(inm, GmfNormals);
-  nNAtV = GmfStatKwd(inm, GmfNormalAtVertices);
-  if ( !np ){
-    std::cout << "No points found in mesh file" << mesh_path << std::endl;
+  //GETTING SIZES
+  nPts    = GmfStatKwd(inm, GmfVertices);
+  nTri    = GmfStatKwd(inm, GmfTriangles);
+  nTet    = GmfStatKwd(inm, GmfTetrahedra);
+  nNor    = GmfStatKwd(inm, GmfNormals);
+  nNorAtV = GmfStatKwd(inm, GmfNormalAtVertices);
+  if ( !nPts || !nTri ){
+    std::cout << "Missing data in mesh file" << mesh_path << std::endl;
     exit(-1);
   }
-  if( !nt ){
-    std::cout << "No triangles found in mesh file" << mesh_path << std::endl;
-    exit(-1);
-  }
-  point.resize(np);
-  tria.resize(nt);
-  if(np)
-    normal.resize(np);
-  if(nNAtV)
-    NormalAtVertices.resize(nNAtV + 1);
+  vertices.resize(3 * nPts);
+  refVert.resize(nPts);
+  indTri.resize(3 * nTri);
+  refTri.resize(nTri);
+  indTet.resize(4 * nTet);
+  refTet.resize(nTet);
+  if(nNor)
+    tmp_normals.resize(3 * nNor);
+    normals.resize(3 * nNor);
+  if(nNorAtV)
+    NormalAtVertices.resize(2 * nNorAtV + 2);
 
+  //VERTICES & INDICES
   GmfGotoKwd(inm,GmfVertices);
-  for (k=0; k<np; k++){
-    ppt = &point[k];
-    if ( ver == GmfFloat ){
-      GmfGetLin(inm,GmfVertices,&fp1,&fp2,&fp3,&ppt->ref);
-      ppt->c[0] = fp1;
-      ppt->c[1] = fp2;
-      ppt->c[2] = fp3;
-    }
-    else
-      GmfGetLin(inm,GmfVertices,&ppt->c[0],&ppt->c[1],&ppt->c[2],&ppt->ref);
+  for (int k = 0; k < nPts; k++){
+    GmfGetLin(inm,GmfVertices,&tmp[0],&tmp[1],&tmp[2], &refVert[k]);
+    vertices[3*k + 0] = tmp[0];
+    vertices[3*k + 1] = tmp[1];
+    vertices[3*k + 2] = tmp[2];
   }
   GmfGotoKwd(inm,GmfTriangles);
-  for (k=0; k<nt; k++) {
-    pt = &tria[k];
-    GmfGetLin(inm,GmfTriangles,&pt->v[0],&pt->v[1],&pt->v[2],&pt->ref);
+  for (int k = 0; k < nTri; k++){
+    GmfGetLin(inm,GmfTriangles,&indTri[3*k],&indTri[3*k+1], &indTri[3*k+2], &refTri[k]);
+    indTri[3*k]-=1;
+    indTri[3*k+1]-=1;
+    indTri[3*k+2]-=1;
   }
-  if ( nn ) {
-    GmfGotoKwd(inm,GmfNormals);
-    for (k=0; k<nn; k++) {
-      if ( ver == GmfFloat ) {
-	GmfGetLin(inm,GmfNormals,&fp1,&fp2,&fp3);
-	normal[k].n[0] = fp1;
-	normal[k].n[1] = fp2;
-	normal[k].n[2] = fp3;
-      }
-      else
-	GmfGetLin(inm,GmfNormals,&normal[k].n[0],&normal[k].n[1],&normal[k].n[2]);
-      n  = normal[k].n;
-      dd = 1.0 / sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-      n[0] *= dd;
-      n[1] *= dd;
-      n[2] *= dd;
-    }
+  nbVertices = vertices.size()/3;
+  
+  //TETRAHEDRON
+  if(nTet){
+    GmfGotoKwd(inm,GmfTetrahedra);
+    for (int k = 0 ; k < nTet ; k++)
+      GmfGetLin(inm,GmfTetrahedra,&indTet[4*k], &indTet[4*k+1], &indTet[4*k+2], &indTet[4*k+3],&refTet[k]);
   }
 
-  //VERTICES
-  int inv = -1;//((pcv->profile.invertVertical)?-1:1);
-  for (int i = 0 ; i < point.size() ; i++){
-    vertices.push_back(      point[i].c[0]);
-    vertices.push_back(inv * point[i].c[1]);
-    vertices.push_back(inv * point[i].c[2]);
-  }
-  //INDICES
-  for (int i = 0 ; i < tria.size() ; i++){
-    for(int j = 0 ; j < 3 ; j++)
-      indices.push_back(tria[i].v[j]-1);}
   //NORMALS
-  if ( nNAtV ) {
+  std::vector<float> tmp_normals;
+  std::vector<int> NormalAtVertices;
+  if(nNor && nNorAtV){
+    GmfGotoKwd(inm,GmfNormals);
+    for (int k = 0 ; k < nNor ; k++) {
+      GmfGetLin(inm,GmfNormals,&tmp[0],&tmp[1],&tmp[2]);
+      double dd = 1.0 / std::sqrt(tmp[0]*tmp[0] + tmp[1]*tmp[1] + tmp[2]*tmp[2]);
+      tmp_normals[3*k + 0] = tmp[0] * dd;
+      tmp_normals[3*k + 1] = tmp[1] * dd;
+      tmp_normals[3*k + 2] = tmp[2] * dd;
+    }
     GmfGotoKwd(inm,GmfNormalAtVertices);
-    for (k=0; k<nNAtV; k++)
-      GmfGetLin(inm,GmfNormalAtVertices,
-		&NormalAtVertices[k].inds[0],
-		&NormalAtVertices[k].inds[1]);
-  }
-  if(nn && nNAtV){
-    for(int i = 0 ; i < vertices.size() ; i++)
-      normals.push_back(0.0f);
-    for(int i = 0 ; i < NormalAtVertices.size() - 1 ; i++){
-      int indV = NormalAtVertices[i].inds[0] - 1;
-      int indN = NormalAtVertices[i].inds[1] - 1;
-      normals[3 * indV + 0] =       normal[indN].n[0];
-      normals[3 * indV + 1] = inv * normal[indN].n[1];
-      normals[3 * indV + 2] = inv * normal[indN].n[2];
+    for (int k = 0 ; k < nNorAtV; k++)
+      GmfGetLin(inm,GmfNormalAtVertices, &NormalAtVertices[2*k+0], &NormalAtVertices[2*k+1]);
+    for(int i = 0 ; i < nNorAtV - 1 ; i++){
+      int indV = NormalAtVertices[2*i+0] - 1;
+      int indN = NormalAtVertices[2*i+1] - 1;
+      normals[3 * indV + 0] =  tmp_normals[3*indN+0];
+      normals[3 * indV + 1] =  tmp_normals[3*indN+1];
+      normals[3 * indV + 2] =  tmp_normals[3*indN+2];
     }
   }
 
@@ -217,7 +194,6 @@ void Object::createGeometry(char * mesh_path){
   int ver2, dim2;
   int inMeshSol = 0;
   inMeshSol = GmfOpenMesh((char*)(solFile.c_str()), GmfRead, &ver2, &dim2);
-
   if(inMeshSol){
     int type, offset, typtab[GmfMaxTyp];
     int nSol      = GmfStatKwd(inMeshSol, GmfSolAtVertices, &type, &offset, &typtab);
@@ -225,9 +201,8 @@ void Object::createGeometry(char * mesh_path){
     GmfGotoKwd(inMeshSol, GmfSolAtVertices);
     for(int i = 0 ; i< nSol ; i++){
       double val;
-      if ( ver2 == GmfFloat ){
+      if ( ver2 == GmfFloat )
 	GmfGetLin(inMeshSol, GmfSolAtVertices, &values[i]);
-      }
       else{
 	GmfGetLin(inMeshSol, GmfSolAtVertices, &val);
 	values[i] = val;
@@ -284,7 +259,7 @@ void Object::createAndBindBuffers(){
   createBuffer(&mBuffer, &vertices);
   createBuffer(&nBuffer, &normals);
   createBuffer(&cBuffer, &colors);
-  createBuffer(&iBuffer, &indices);
+  createBuffer(&iBuffer, &indTri);
 
   int shaderID = parentScene->parentWindow->parentContext->shader->ID;
   glUseProgram(shaderID);
@@ -394,15 +369,137 @@ void Object::render(){
   if(context->window->controls->structure==1 || ((context->window->controls->structure == 0) && (context->window->controls->colors == 0) && (context->window->controls->lighting == 0))){
     send(ID, glm::vec3(0,0,0), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
 
     glDisable(GL_POLYGON_OFFSET_FILL);
     send(ID, 1,                "uSecondPass");
     send(ID, glm::vec3(1,1,1), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   }
   else
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   glBindVertexArray(0);  
 }	
+
+
+
+
+
+/*
+
+//data structures 
+typedef struct {
+  int    min,ind,nxt,elt;
+} Cell;
+
+typedef struct {
+  Cell  *cell;
+  int    nmax,hsiz,hnxt;
+} Htab;
+
+// insert edge a,b and update adjacent triangle 
+static int hcode_2d(Tria *tria,Htab *ht,int a,int b,int k,int i) {
+  Cell     *pc;
+  pTria     pt,pt1;
+  int       abmin,adj,sum;
+
+  sum = a+b;
+  if ( sum >= ht->nmax )  return(0);
+
+  // check if edge ab stored 
+  pc    = &ht->cell[sum];
+  abmin = NS_MIN(a,b);
+  if ( !pc->min ) {
+    pc->min = abmin;
+    pc->elt = k;
+    pc->ind = i;
+    return(1);
+  }
+
+  // analyze linked list 
+  pt  = &tria[k];
+  do {
+    pt1 = &tria[pc->elt];
+    if ( pc->min == abmin ) {
+      adj = pt1->adj[pc->ind];
+      if ( !adj ) {
+        pt->adj[i]        = 3*pc->elt+pc->ind;
+        pt1->adj[pc->ind] = 3*k+i;
+      }
+      return(1);
+    }
+    else if ( !pc->nxt ) {
+      pc->nxt = ht->hnxt;
+      pc      = &ht->cell[ht->hnxt];
+      if ( !pc )  return(0);
+      pc->min  = abmin;
+      pc->elt  = k;
+      pc->ind  = i;
+      ht->hnxt = pc->nxt;
+      pc->nxt  = 0;
+
+      // check for size overflow 
+      if ( !ht->hnxt )  return(0);
+      return(1);
+    }
+    pc = &ht->cell[pc->nxt];
+  } while (1);
+
+  return(0);  
+}
+
+
+// build adjacency table 
+int hashel_2d(NSst *nsst) {
+  Htab     ht;
+  pTria    pt;
+  pPoint   ppt;
+  int      k,na;
+  char     i,i1,i2;
+
+  if ( nsst->info.verb == '+' )  fprintf(stdout,"    Adjacency table: ");
+
+  // alloc hash 
+  ht.nmax = (int)(3.71 * nsst->info.np);
+  ht.cell = (Cell*)calloc(ht.nmax+2,sizeof(Cell));
+  assert(ht.cell);
+
+  ht.hsiz = 2 * nsst->info.np;
+  ht.hnxt = ht.hsiz;
+  for (k=ht.hsiz; k<ht.nmax; k++)
+    ht.cell[k].nxt = k+1;
+
+  // update adjacency 
+  na = 0;
+  for (k=1; k<=nsst->info.nt; k++) {
+    pt = &nsst->mesh.tria[k];
+    for (i=0; i<3; i++) {
+      i1 = (i+1) % 3;
+      i2 = (i+2) % 3;
+      if ( !hcode_2d(nsst->mesh.tria,&ht,pt->v[i1],pt->v[i2],k,i) )  return(0);
+      na++;
+    }
+  }
+
+  // add seed with point 
+  for (k=1; k<=nsst->info.nt; k++) {
+    pt = &nsst->mesh.tria[k];
+    for (i=0; i<3; i++) {
+      if ( !pt->adj[i] )  nsst->mesh.point[pt->v[1]].s = k;
+    }
+  }
+  for (k=1; k<=nsst->info.nt; k++) {
+    pt = &nsst->mesh.tria[k];
+    for (i=0; i<3; i++) {
+      ppt = &nsst->mesh.point[pt->v[i]];
+      if ( !ppt->s )  ppt->s = k; 
+    }
+  }
+  free(ht.cell);
+
+  if ( nsst->info.verb == '+' )  fprintf(stdout," %d updated\n",na);
+
+  return(1);  
+}
+*/

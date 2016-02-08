@@ -10,7 +10,11 @@ public:
   std::vector<float>  vertices;
   std::vector<float>  normals;
   std::vector<float>  colors;
-  std::vector<int>    indices;
+
+  std::vector<int>    refTri, refTet, refVert;
+  std::vector<int>    indTri, indTet;
+  std::vector<int>    adjacent;
+  
 
   GLuint              mBuffer;
   GLuint              nBuffer;
@@ -34,22 +38,5 @@ public:
   void createAndBindBuffers();
   void render();
 };
-
-typedef struct {
-  double    c[3];
-  int       ref;
-} Point;
-//typedef Point * pPoint;
-typedef struct {
-  int       v[3],ref;
-} Tria;
-//typedef Tria * pTria;
-typedef struct {
-  double    n[3];
-} Normal;
-//typedef Normal * pNormal;
-typedef struct {
-  int inds[2];
-} NormalAtVertex;
 
 #endif
