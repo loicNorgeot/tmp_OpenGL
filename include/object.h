@@ -14,6 +14,11 @@ public:
   std::vector<int>    refTri, refTet, refVert;
   std::vector<int>    indTri, indTet;
   std::vector<int>    adjacent;
+
+  std::vector<std::string> meshfiles;
+  std::vector<int>         nbTris;
+  bool                     multipleMeshes=false;
+  int                      currentMesh=0;
   
 
   GLuint              mBuffer;
@@ -31,8 +36,10 @@ public:
 
   Object(Scene* scene);
   Object(Scene* scene, char * mesh_path);
+  Object(Scene* scene, char ** pathes, int nbPathes);
   void createGeometry();
   void createGeometry(char * mesh_path);
+  void createGeometry(char ** pathes, int nbPathes);
   void computeBoundingBox();
   void scaleAndTranslate();
   void createAndBindBuffers();

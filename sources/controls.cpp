@@ -34,6 +34,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       context->window->controls->ortho = !context->window->controls->ortho;
       context->window->scene->view->update();
     }
+
+    if(key == GLFW_KEY_KP_7){
+      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh + 1 ) %2;
+    }
   }
 }
 
