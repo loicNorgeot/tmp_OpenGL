@@ -1,5 +1,9 @@
 #include "commons.h"
 
+/*
+~/Bureau/3DASSETS/final/tmp/A_canthare.o.mesh  ~/Bureau/3DASSETS/final/tmp/B_3351.o.mesh  ~/Bureau/3DASSETS/final/tmp/C_3354.o.mesh  ~/Bureau/3DASSETS/final/tmp/D_3354a.o.mesh  ~/Bureau/3DASSETS/final/tmp/E_3257.o.mesh  ~/Bureau/3DASSETS/final/tmp/F_3354.o.mesh
+*/
+
 CONTEXT * context;
 
 int main(int argc, char** argv){
@@ -9,7 +13,7 @@ int main(int argc, char** argv){
     context->window->scene->object = new Object(context->window->scene);
   else if( argc == 2 )
     context->window->scene->object = new Object(context->window->scene, argv[1]);
-  else if( argc == 3 )
+  else if( argc > 2 )
     context->window->scene->object = new Object(context->window->scene, argv, argc);
   else
     exit(-1);

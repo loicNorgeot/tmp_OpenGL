@@ -35,8 +35,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       context->window->scene->view->update();
     }
 
-    if(key == GLFW_KEY_KP_7){
-      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh + 1 ) %2;
+    if(key == GLFW_KEY_KP_ADD){
+      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh + 1 ) % (context->window->scene->object->meshfiles.size());
+    }
+    if(key == GLFW_KEY_KP_SUBTRACT){
+      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh<1)?\
+      (context->window->scene->object->meshfiles.size()-1):
+      (context->window->scene->object->currentMesh-1);
     }
   }
 }
@@ -55,7 +60,7 @@ glm::vec3 getArcballVector(GLFWwindow* window, glm::vec2 pos){
   return P;
 }
 
-static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){  
+static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
 
   glm::vec2 pos(xpos, ypos);
 
@@ -71,7 +76,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
     axis = glm::mat3(camera2object) * axis;
 
     //glm::vec3 center = glm::vec3( (context->window->scene->object->MODEL)[3] );
-    context->window->scene->object->MODEL = 
+    context->window->scene->object->MODEL =
       //glm::translate(glm::mat4(1), center) *
       glm::rotate(glm::mat4(1), glm::radians(angle), axis) *
       //glm::translate(glm::mat4(1), -center) *
@@ -79,26 +84,26 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       ;
   }
   */
-  
+
   if(context->window->controls->buttons[0]){
     glm::quat xRot = glm::angleAxis(0.01f * (float)(xpos - context->window->controls->oldPos.x), glm::normalize(glm::vec3(-1,1,-1)));
     glm::quat yRot = glm::angleAxis(-0.01f * (float)(ypos - context->window->controls->oldPos.y), glm::normalize(glm::vec3(-1,0,1)));
     glm::vec3 center = glm::vec3( (context->window->scene->object->MODEL)[3] );
-    context->window->scene->object->MODEL = 
+    context->window->scene->object->MODEL =
       glm::translate(glm::mat4(1), center) *
       glm::toMat4(xRot * yRot) *
       glm::translate(glm::mat4(1), -center) *
       context->window->scene->object->MODEL
       ;
   }
-  
+
 
   if(context->window->controls->buttons[1]){
     glm::vec3 xTrans = -0.0025f * (float)(xpos - context->window->controls->oldPos.x) * glm::normalize(glm::vec3(-1,0,1));
     glm::vec3 yTrans = -0.0025f * (float)(ypos - context->window->controls->oldPos.y) * context->window->scene->view->up;
     context->window->scene->object->MODEL = glm::translate(glm::mat4(1) , xTrans + yTrans) * context->window->scene->object->MODEL;
   }
-  
+
   if(context->window->controls->buttons[2]){
     float dY = ypos - context->window->controls->oldPos.y;
     float dX = xpos - context->window->controls->oldPos.x;
@@ -162,7 +167,7 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 
 Controls::Controls(Window * window){
   parentWindow = window;
-  
+
   cull    = GL_BACK;
   animate = false;
   ortho   = false;
@@ -183,7 +188,7 @@ void Controls::init(){
   glfwSetScrollCallback(w, scroll_callback);
 
   glfwSetDropCallback(w, drop_callback);
-  
+
   glfwSetWindowSizeCallback(w, window_size_callback);
   glfwSetErrorCallback(error_callback);
 

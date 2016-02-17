@@ -88,22 +88,22 @@ void Object::createGeometry(){
     6, 2, 1
   };
   colors = std::vector<float>{
-    0.0f, 0.0f, 0.0f,   
-    0.0f, 0.0f, 1.0f,   
-    0.0f, 1.0f, 0.0f,   
+    0.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f,
+    0.0f, 1.0f, 0.0f,
     0.0f, 1.0f, 1.0f,
-    1.0f, 0.0f, 0.0f,   
-    1.0f, 0.0f, 1.0f,   
+    1.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 1.0f,
     1.0f, 1.0f, 0.0f,
     1.0f, 1.0f, 1.0f
   };
   normals = std::vector<float>{
-    0, 0, 1,   
-    0, 0, 1,   
-    0, 1, 0,   
+    0, 0, 1,
+    0, 0, 1,
+    0, 1, 0,
     0, 1, 1,
-    1, 0, 0,   
-    1, 0, 1,   
+    1, 0, 0,
+    1, 0, 1,
     1, 1, 0,
     1, 1, 1
   };
@@ -140,7 +140,7 @@ void Object::createGeometry(char * mesh_path){
   refTri.resize(nTri);
   indTet.resize(4 * nTet);
   refTet.resize(nTet);
-  
+
 
   //VERTICES & INDICES
   GmfGotoKwd(inm,GmfVertices);
@@ -158,7 +158,7 @@ void Object::createGeometry(char * mesh_path){
     indTri[3*k+2]-=1;
   }
   nbVertices = vertices.size()/3;
-  
+
   //TETRAHEDRON
   if(nTet){
     GmfGotoKwd(inm,GmfTetrahedra);
@@ -268,9 +268,11 @@ void Object::createGeometry(char * mesh_path){
 
 void Object::createGeometry(char ** pathes, int nbPathes){
   multipleMeshes = true;
-  currentMesh=0;
+  currentMesh = 0;
+  int indMax = 0;
 
   for(int p = 1 ; p < nbPathes ; p++){
+    int indMax_tmp = 0;
     meshfiles.push_back( std::string(pathes[p]) );
 
     //Initialisation
@@ -312,16 +314,17 @@ void Object::createGeometry(char ** pathes, int nbPathes){
       vertices[k + 0] = tmp[0];
       vertices[k + 1] = tmp[1];
       vertices[k + 2] = tmp[2];
+
     }
     GmfGotoKwd(inm,GmfTriangles);
     for (int k = indTri.size() - 3*nTri; k < indTri.size(); k+=3){
       GmfGetLin(inm,GmfTriangles,&indTri[k],&indTri[k+1], &indTri[k+2], &refTri[k/3]);
-      indTri[k]   += indTri.size() - 3*nTri- 1; //indTri.size() - 3*nTri
-      indTri[k+1] += indTri.size() - 3*nTri-1;
-      indTri[k+2] += indTri.size() - 3*nTri-1;
+      for(int j = 0 ; j < 3 ; j++)
+        indTri[ k + j ] += indMax - 1;
     }
+    indMax = vertices.size()/3;
     nbVertices = vertices.size()/3;
-  
+
     //TETRAHEDRON
     if(nTet){
       GmfGotoKwd(inm,GmfTetrahedra);
@@ -451,10 +454,10 @@ void Object::createAndBindBuffers(){
     context->window->controls->lighting = 2;
   if(cBuffer!=-1)
     context->window->controls->colors = 1;
-    
+
 }
 
-	
+
 void Object::render(){
   /*
   if(cBuffer!=-1){
@@ -466,7 +469,7 @@ void Object::render(){
     }
     updateBuffer(cBuffer, &colors);
   }
-  
+
   if(nBuffer != -1){
     alpha += 0.025f;
     for(int i = 0 ; i < vertices.size() ; i+=3){
@@ -530,7 +533,7 @@ void Object::render(){
     if(context->window->controls->colors == 2)
       context->window->controls->colors = 0;
   }
- 
+
   //Uniform sending
   send(ID, MVP, 	                        "MVP");
   send(ID, MODEL, 	                        "M");
@@ -540,8 +543,6 @@ void Object::render(){
   send(ID, context->window->controls->structure,"uStructure");
   send(ID, glm::vec3(1,1,1),                    "objectColor");
   send(ID, 0,                                   "uSecondPass");
-
-  
 
   //Drawing
   glBindVertexArray(VAO);
@@ -554,22 +555,24 @@ void Object::render(){
     send(ID, 1,                "uSecondPass");
     send(ID, glm::vec3(1,1,1), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    //glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
+    glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   }
   else{
+
     if(multipleMeshes){
       int offset = 0;
-      for(int i = 0 ; i < currentMesh ; i++)
-	offset += 3*nbTris[i];
-      std::cout << offset << std::endl;
-      glDrawElements(GL_TRIANGLES, 3*nbTris[currentMesh], GL_UNSIGNED_INT, (void*)offset);
+      for(int i = 1 ; i <= currentMesh ; i++)
+        offset += 3*nbTris[currentMesh-i];
+      glDrawElements(GL_TRIANGLES, 3*nbTris[currentMesh], GL_UNSIGNED_INT, (void*) (offset* sizeof(int)));
     }
+
     else{
-      glDrawElements(GL_TRIANGLES, 3 * indTri.size(), GL_UNSIGNED_INT, (void*)0);
+        //std::cout << nbTris[0] << " " << nbTris[1] << std::endl;
+      //glDrawElements(GL_TRIANGLES, 3 * (nbTris[1]), GL_UNSIGNED_INT, (void*)(3*nbTris[0]));
     }
   }
-  glBindVertexArray(0);  
-}	
+  glBindVertexArray(0);
+}
 
 
 
@@ -577,7 +580,7 @@ void Object::render(){
 
 /*
 
-//data structures 
+//data structures
 typedef struct {
   int    min,ind,nxt,elt;
 } Cell;
@@ -587,7 +590,7 @@ typedef struct {
   int    nmax,hsiz,hnxt;
 } Htab;
 
-// insert edge a,b and update adjacent triangle 
+// insert edge a,b and update adjacent triangle
 static int hcode_2d(Tria *tria,Htab *ht,int a,int b,int k,int i) {
   Cell     *pc;
   pTria     pt,pt1;
@@ -596,7 +599,7 @@ static int hcode_2d(Tria *tria,Htab *ht,int a,int b,int k,int i) {
   sum = a+b;
   if ( sum >= ht->nmax )  return(0);
 
-  // check if edge ab stored 
+  // check if edge ab stored
   pc    = &ht->cell[sum];
   abmin = NS_MIN(a,b);
   if ( !pc->min ) {
@@ -606,7 +609,7 @@ static int hcode_2d(Tria *tria,Htab *ht,int a,int b,int k,int i) {
     return(1);
   }
 
-  // analyze linked list 
+  // analyze linked list
   pt  = &tria[k];
   do {
     pt1 = &tria[pc->elt];
@@ -628,18 +631,18 @@ static int hcode_2d(Tria *tria,Htab *ht,int a,int b,int k,int i) {
       ht->hnxt = pc->nxt;
       pc->nxt  = 0;
 
-      // check for size overflow 
+      // check for size overflow
       if ( !ht->hnxt )  return(0);
       return(1);
     }
     pc = &ht->cell[pc->nxt];
   } while (1);
 
-  return(0);  
+  return(0);
 }
 
 
-// build adjacency table 
+// build adjacency table
 int hashel_2d(NSst *nsst) {
   Htab     ht;
   pTria    pt;
@@ -649,7 +652,7 @@ int hashel_2d(NSst *nsst) {
 
   if ( nsst->info.verb == '+' )  fprintf(stdout,"    Adjacency table: ");
 
-  // alloc hash 
+  // alloc hash
   ht.nmax = (int)(3.71 * nsst->info.np);
   ht.cell = (Cell*)calloc(ht.nmax+2,sizeof(Cell));
   assert(ht.cell);
@@ -659,7 +662,7 @@ int hashel_2d(NSst *nsst) {
   for (k=ht.hsiz; k<ht.nmax; k++)
     ht.cell[k].nxt = k+1;
 
-  // update adjacency 
+  // update adjacency
   na = 0;
   for (k=1; k<=nsst->info.nt; k++) {
     pt = &nsst->mesh.tria[k];
@@ -671,7 +674,7 @@ int hashel_2d(NSst *nsst) {
     }
   }
 
-  // add seed with point 
+  // add seed with point
   for (k=1; k<=nsst->info.nt; k++) {
     pt = &nsst->mesh.tria[k];
     for (i=0; i<3; i++) {
@@ -682,13 +685,13 @@ int hashel_2d(NSst *nsst) {
     pt = &nsst->mesh.tria[k];
     for (i=0; i<3; i++) {
       ppt = &nsst->mesh.point[pt->v[i]];
-      if ( !ppt->s )  ppt->s = k; 
+      if ( !ppt->s )  ppt->s = k;
     }
   }
   free(ht.cell);
 
   if ( nsst->info.verb == '+' )  fprintf(stdout," %d updated\n",na);
 
-  return(1);  
+  return(1);
 }
 */
