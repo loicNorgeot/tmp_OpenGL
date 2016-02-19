@@ -34,15 +34,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       context->window->controls->ortho = !context->window->controls->ortho;
       context->window->scene->view->update();
     }
+    if(key == GLFW_KEY_KP_5){
+      context->window->controls->ortho = !context->window->controls->ortho;
+      context->window->scene->view->update();
+    }
 
-    if(key == GLFW_KEY_KP_ADD){
-      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh + 1 ) % (context->window->scene->object->meshfiles.size());
+    if(key == GLFW_KEY_UP){
+        context->window->scene->view->cam *= 1 - 0.1;
+        context->window->scene->view->update();
     }
-    if(key == GLFW_KEY_KP_SUBTRACT){
-      context->window->scene->object->currentMesh =  (context->window->scene->object->currentMesh<1)?\
-      (context->window->scene->object->meshfiles.size()-1):
-      (context->window->scene->object->currentMesh-1);
+    if(key == GLFW_KEY_DOWN){
+        context->window->scene->view->cam *= 1 + 0.1;
+        context->window->scene->view->update();
     }
+
+
   }
 }
 
@@ -160,8 +166,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
   }
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
-  context->window->scene->view->cam *= 1 - yoffset/10;
-  context->window->scene->view->update();
+    if( yoffset > 0  &&  context->window->scene->object->currentMesh < context->window->scene->object->meshfiles.size()-1 ){
+      context->window->scene->object->currentMesh += 1;//  (context->window->scene->object->currentMesh + 1 ) % (context->window->scene->object->meshfiles.size());
+    }
+    else if( yoffset < 0  &&  context->window->scene->object->currentMesh > 0 ){
+      context->window->scene->object->currentMesh -= 1;//  (context->window->scene->object->currentMesh<1)?\
+      //(context->window->scene->object->meshfiles.size()-1):
+      //(context->window->scene->object->currentMesh-1);
+    }
 }
 
 

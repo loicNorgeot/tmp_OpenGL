@@ -559,6 +559,8 @@ void Object::render(){
   }
   else{
 
+    //currentMesh = (currentMesh+1) % nbTris.size();
+
     if(multipleMeshes){
       int offset = 0;
       for(int i = 1 ; i <= currentMesh ; i++)
