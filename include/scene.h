@@ -6,12 +6,18 @@
 class Scene{
 public:
   View* view;
-  Object* object;
+  std::vector<Object*> objects;
+  Object* active;
+  Background* background;
+  Axis* axis;
 
   //Parent
   Window* parentWindow;
+  bool selected;
+  glm::vec3 center;
 
   Scene(Window* window);
+  void render();
 };
 
 #endif

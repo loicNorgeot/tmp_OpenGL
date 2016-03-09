@@ -13,7 +13,8 @@ Object::Object(Scene* scene){
   createGeometry();
   computeBoundingBox();
   createAndBindBuffers();
-  alpha = 3.14159f / 2;
+  id = 1;
+  pickingColor = glm::vec3(1,1,1);
 }
 Object::Object(Scene* scene, char * mesh_path){
   parentScene = scene;
@@ -22,16 +23,8 @@ Object::Object(Scene* scene, char * mesh_path){
   scaleAndTranslate();
   createAndBindBuffers();
   MODEL = glm::mat4(1);
-  alpha = 3.14159f / 2;
-}
-Object::Object(Scene* scene, char ** pathes, int nbPathes){
-  parentScene = scene;
-  createGeometry(pathes, nbPathes);
-  computeBoundingBox();
-  scaleAndTranslate();
-  createAndBindBuffers();
-  MODEL = glm::mat4(1);
-  alpha = 3.14159f / 2;
+  id = scene->objects.size();
+  pickingColor = glm::vec3( (id%255)/255. + 1/255. , (id/255)/255. , 0 );
 }
 
 void Object::computeBoundingBox(){
@@ -265,175 +258,6 @@ void Object::createGeometry(char * mesh_path){
   }
 }
 
-
-void Object::createGeometry(char ** pathes, int nbPathes){
-  multipleMeshes = true;
-  currentMesh = 0;
-  int indMax = 0;
-
-  for(int p = 1 ; p < nbPathes ; p++){
-    int indMax_tmp = 0;
-    meshfiles.push_back( std::string(pathes[p]) );
-
-    //Initialisation
-    int nPts, nTri, nNor, nTet, nNorAtV;
-    int ver, dim;
-    double* tmp = new double[3];
-
-    //READING .mesh
-    int inm = GmfOpenMesh(pathes[p],GmfRead,&ver,&dim);
-    if ( !inm ){
-      std::cout << "Unable to open mesh file " << pathes[p] << std::endl;
-      exit(-1);
-    }
-
-    //GETTING SIZES
-    nPts    = GmfStatKwd(inm, GmfVertices);
-
-    nTri    = GmfStatKwd(inm, GmfTriangles);
-    nbTris.push_back(nTri);
-
-    nTet    = GmfStatKwd(inm, GmfTetrahedra);
-    nNor    = GmfStatKwd(inm, GmfNormals);
-    nNorAtV = GmfStatKwd(inm, GmfNormalAtVertices);
-    if ( !nPts || !nTri ){
-      std::cout << "Missing data in mesh file" << pathes[p] << std::endl;
-      exit(-1);
-    }
-    vertices.resize(vertices.size() + 3 * nPts);
-    refVert.resize(refVert.size() + nPts);
-    indTri.resize(indTri.size() + 3 * nTri);
-    refTri.resize(refTri.size() + nTri);
-    indTet.resize(indTet.size() + 4 * nTet);
-    refTet.resize(refTet.size() + nTet);
-
-    //VERTICES & INDICES
-    GmfGotoKwd(inm,GmfVertices);
-    for (int k = vertices.size()-3*nPts; k < vertices.size(); k+=3){
-      GmfGetLin(inm,GmfVertices,&tmp[0],&tmp[1],&tmp[2], &refVert[k/3]);
-      vertices[k + 0] = tmp[0];
-      vertices[k + 1] = tmp[1];
-      vertices[k + 2] = tmp[2];
-
-    }
-    GmfGotoKwd(inm,GmfTriangles);
-    for (int k = indTri.size() - 3*nTri; k < indTri.size(); k+=3){
-      GmfGetLin(inm,GmfTriangles,&indTri[k],&indTri[k+1], &indTri[k+2], &refTri[k/3]);
-      for(int j = 0 ; j < 3 ; j++)
-        indTri[ k + j ] += indMax - 1;
-    }
-    indMax = vertices.size()/3;
-    nbVertices = vertices.size()/3;
-
-    //TETRAHEDRON
-    if(nTet){
-      GmfGotoKwd(inm,GmfTetrahedra);
-      for (int k = 0 ; k < nTet ; k++)
-	GmfGetLin(inm,GmfTetrahedra,&indTet[4*k], &indTet[4*k+1], &indTet[4*k+2], &indTet[4*k+3],&refTet[k]);
-    }
-
-    //NORMALS
-    std::vector<float> tmp_normals;
-    std::vector<int> NormalAtVertices;
-    if(nNor)
-      tmp_normals.resize(tmp_normals.size() + 3 * nNor);
-    normals.resize(normals.size() + 3 * nNor);
-    if(nNorAtV)
-      NormalAtVertices.resize(NormalAtVertices.size() + 2 * nNorAtV + 2);
-
-    if(nNor && nNorAtV){
-      GmfGotoKwd(inm,GmfNormals);
-      for (int k = 0 ; k < nNor ; k++) {
-	GmfGetLin(inm,GmfNormals,&tmp[0],&tmp[1],&tmp[2]);
-	double dd = 1.0 / std::sqrt(tmp[0]*tmp[0] + tmp[1]*tmp[1] + tmp[2]*tmp[2]);
-	tmp_normals[3*k + 0] = tmp[0] * dd;
-	tmp_normals[3*k + 1] = tmp[1] * dd;
-	tmp_normals[3*k + 2] = tmp[2] * dd;
-      }
-      GmfGotoKwd(inm,GmfNormalAtVertices);
-      for (int k = 0 ; k < nNorAtV; k++)
-	GmfGetLin(inm,GmfNormalAtVertices, &NormalAtVertices[2*k+0], &NormalAtVertices[2*k+1]);
-      for(int i = 0 ; i < nNorAtV - 1 ; i++){
-	int indV = NormalAtVertices[2*i+0] - 1;
-	int indN = NormalAtVertices[2*i+1] - 1;
-	int iOff = normals.size() - 3*nPts;
-	normals[iOff + 3 * indV + 0] =  tmp_normals[3*indN+0];
-	normals[iOff + 3 * indV + 1] =  tmp_normals[3*indN+1];
-	normals[iOff + 3 * indV + 2] =  tmp_normals[3*indN+2];
-      }
-    }
-
-    std::cout << "Succesfully opened  " << pathes[p] << std::endl;
-    GmfCloseMesh(inm);
-
-
-    //Lecture du .sol
-    std::string solFile = meshfiles.back().substr(0, meshfiles.back().size()-5) + ".sol";
-    int ver2, dim2;
-    int inMeshSol = 0;
-    inMeshSol = GmfOpenMesh((char*)(solFile.c_str()), GmfRead, &ver2, &dim2);
-    if(inMeshSol){
-      int type, offset, typtab[GmfMaxTyp];
-      int nSol      = GmfStatKwd(inMeshSol, GmfSolAtVertices, &type, &offset, &typtab);
-      std::vector<float> values(nSol);
-      GmfGotoKwd(inMeshSol, GmfSolAtVertices);
-      for(int i = 0 ; i< nSol ; i++){
-	double val;
-	if ( ver2 == GmfFloat )
-	  GmfGetLin(inMeshSol, GmfSolAtVertices, &values[i]);
-	else{
-	  GmfGetLin(inMeshSol, GmfSolAtVertices, &val);
-	  values[i] = val;
-	}
-      }
-      std::cout << "Succesfully opened  " << solFile << std::endl;
-      GmfCloseMesh(inMeshSol);
-
-      //From palette
-      float mini = 1e9;
-      float maxi = -1e9;
-      for(int i = 0 ; i < values.size() ; i++){
-	mini = std::min(mini, values[i]);
-	maxi = std::max(maxi, values[i]);
-      }
-
-      std::vector<glm::vec4> P;
-      P.push_back(glm::vec4(0.0f,   1.0f,   0.0f,   0.0f));
-      P.push_back(glm::vec4(0.35, 0.75,   0.75, 0.0f));
-      P.push_back(glm::vec4(0.5, 0.0f, 1.0f, 0.0f));
-      P.push_back(glm::vec4(0.65, 0.0f, 0.75, 0.75));
-      P.push_back(glm::vec4(1.0f,   0.0f, 0.0f, 1.0f));
-
-      for(int k = 0 ; k < values.size() ; k++){
-	float val = (maxi - values[k]) / (maxi - mini);
-	for(int i = 0 ; i < P.size() ; i++){
-	  if(i==P.size()-1){
-	    float fac       = (val - P[i-1][0])/(P[i][0] - P[i-1][0]);
-	    glm::vec4 col   = (1-fac)*P[i-1] + fac*P[i];
-	    colors.push_back(col[1]);
-	    colors.push_back(col[2]);
-	    colors.push_back(col[3]);
-	  }
-	  else{
-	    if( (val>=P[i][0]) && (val<=P[i+1][0]) ){
-	      float fac       = (val - P[i][0])/(P[i+1][0] - P[i][0]);
-	      glm::vec4 col   = (1-fac)*P[i] + fac*P[i+1];
-	      colors.push_back(col[1]);
-	      colors.push_back(col[2]);
-	      colors.push_back(col[3]);
-	      break;
-	    }
-	  }
-	}
-      }
-    }
-    else{
-      std::cout << "Failed to open .sol " << solFile << std::endl;
-    }
-  }
-}
-
-
 void Object::createAndBindBuffers(){
   createVAO(&VAO);
   createBuffer(&mBuffer, &vertices);
@@ -449,11 +273,11 @@ void Object::createAndBindBuffers(){
   bindBuffer(2, shaderID, cBuffer, "vertex_color");
   bindIndicesBuffer(iBuffer);
 
-  context->window->controls->lighting = 1;
+  parentScene->parentWindow->controls->lighting = 1;
   if(nBuffer!=-1)
-    context->window->controls->lighting = 2;
+    parentScene->parentWindow->controls->lighting = 2;
   if(cBuffer!=-1)
-    context->window->controls->colors = 1;
+    parentScene->parentWindow->controls->colors = 1;
 
 }
 
@@ -518,35 +342,39 @@ void Object::render(){
   }
 
   //Transformations
-  if(context->window->controls->animate)
-    MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
-  glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
+  //if(context->window->controls->animate)
+  //  MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
+  glm::mat4 MVP = parentScene->view->PROJ * parentScene->view->VIEW * MODEL;
 
   //According parameters to the mesh
   if(cBuffer == -1){
-    if(context->window->controls->colors == 1)
-      context->window->controls->colors = 2;
+    if(parentScene->parentWindow->controls->colors == 1)
+      parentScene->parentWindow->controls->colors = 2;
   }
   if(nBuffer == -1){
-    if(context->window->controls->lighting == 2)
-      context->window->controls->lighting = 0;
-    if(context->window->controls->colors == 2)
-      context->window->controls->colors = 0;
+    if(parentScene->parentWindow->controls->lighting == 2)
+      parentScene->parentWindow->controls->lighting = 0;
+    if(parentScene->parentWindow->controls->colors == 2)
+      parentScene->parentWindow->controls->colors = 0;
   }
 
   //Uniform sending
-  send(ID, MVP, 	                        "MVP");
-  send(ID, MODEL, 	                        "M");
+  send(ID, MVP, 	                              "MVP");
+  send(ID, MODEL, 	                            "M");
   send(ID, parentScene->view->VIEW,             "V");
-  send(ID, context->window->controls->lighting, "uLighting");
-  send(ID, context->window->controls->colors,   "uColor");
-  send(ID, context->window->controls->structure,"uStructure");
-  send(ID, glm::vec3(1,1,1),                    "objectColor");
+  send(ID, parentScene->parentWindow->controls->lighting, "uLighting");
+  send(ID, parentScene->parentWindow->controls->colors,   "uColor");
+  send(ID, parentScene->parentWindow->controls->structure,"uStructure");
+  if(selected)
+    send(ID, glm::vec3(1,0.8,0),                  "objectColor");
+  else
+    send(ID, glm::vec3(1,1,1),                  "objectColor");
   send(ID, 0,                                   "uSecondPass");
+  send(ID, 0, "picking");
 
   //Drawing
   glBindVertexArray(VAO);
-  if(context->window->controls->structure==1 || ((context->window->controls->structure == 0) && (context->window->controls->colors == 0) && (context->window->controls->lighting == 0))){
+  if(parentScene->parentWindow->controls->structure==1 || ((parentScene->parentWindow->controls->structure == 0) && (parentScene->parentWindow->controls->colors == 0) && (parentScene->parentWindow->controls->lighting == 0))){
     send(ID, glm::vec3(0,0,0), "objectColor");
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
@@ -557,26 +385,23 @@ void Object::render(){
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   }
-  else{
-
-    //currentMesh = (currentMesh+1) % nbTris.size();
-
-    if(multipleMeshes){
-      int offset = 0;
-      for(int i = 1 ; i <= currentMesh ; i++)
-        offset += 3*nbTris[currentMesh-i];
-      glDrawElements(GL_TRIANGLES, 3*nbTris[currentMesh], GL_UNSIGNED_INT, (void*) (offset* sizeof(int)));
-    }
-
-    else{
-        //std::cout << nbTris[0] << " " << nbTris[1] << std::endl;
-      //glDrawElements(GL_TRIANGLES, 3 * (nbTris[1]), GL_UNSIGNED_INT, (void*)(3*nbTris[0]));
-    }
-  }
+  else
+    glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   glBindVertexArray(0);
 }
-
-
+void Object::pickingRender(){
+  int    ID     = parentScene->parentWindow->parentContext->shader->ID;
+  glBindVertexArray(VAO);
+  glUseProgram(ID);
+  glEnable(GL_DEPTH_TEST);
+  glDepthFunc(GL_LESS);
+  glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
+  send(ID, MVP,"MVP");
+  send(ID, 1, "picking");
+  send(ID, pickingColor, "objectColor");
+  glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
+  glBindVertexArray(0);
+}
 
 
 

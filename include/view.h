@@ -12,6 +12,8 @@ public:
   glm::vec3 cam;
   glm::vec3 look;
   glm::vec3 up;
+  glm::vec3 right;
+  float zoom;
 
   glm::mat4 VIEW;
   glm::mat4 PROJ;

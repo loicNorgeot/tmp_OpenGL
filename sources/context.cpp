@@ -19,26 +19,29 @@ void initGLEW(){
 CONTEXT::CONTEXT(MODE mode){
   context = this;
   initGLFW();
-  window = new Window(this, mode, 1024, 620);
+  windows.push_back(new Window(this, mode, 1000, 768, 366, 0));
+  windows.push_back(new Window(this, mode, 366,  768, 0,   0));
+  windows.push_back(new Window(this, mode, 366,  768, 0,   0));
   shader = new Shader(this);
   initGLEW();
-  window->init();
+  for(Window* win : windows){
+    window = win;
+    glfwMakeContextCurrent(win->window);
+    win->init();
+  }
   shader->load(shadersPath + "shader.vert", shadersPath + "shader.frag", shadersPath + "shader.functions");
 }
-void CONTEXT::init(){}
 bool CONTEXT::shouldStop(){
   bool goesOn = glfwGetKey(window->window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window->window) == 0;
   return !goesOn;
 }
 void CONTEXT::render(){
-  glfwPollEvents();
-  glClearColor(0,0,0,1);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  window->scene->object->render();
-  glfwSwapBuffers(window->window);
+  window->render();
+  window->swap();
 }
 int CONTEXT::stop(){
-  glfwDestroyWindow(window->window);
+  for(Window* win : windows)
+    glfwDestroyWindow(win->window);
   glfwTerminate();
   return 0;
 }

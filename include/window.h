@@ -10,8 +10,10 @@ class Window{
   Scene*      scene;
   CONTEXT *   parentContext;
 
-  Window(CONTEXT * context, MODE windowMode, int resX, int resY);
+  Window(CONTEXT * context, MODE windowMode, int resX, int resY, int posX, int posY);
   void init();
+  void render();
+  void swap();
 };
 
 #endif

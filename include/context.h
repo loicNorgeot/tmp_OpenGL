@@ -6,10 +6,10 @@
 class CONTEXT{
 public:
   Window* window;
+  std::vector<Window*> windows;
   Shader* shader;
 
   CONTEXT(MODE mode);
-  void init();
   void render();
   bool shouldStop();
   int stop();

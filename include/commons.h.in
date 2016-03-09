@@ -48,6 +48,8 @@ class Window;
 class Object;
 class View;
 class Scene;
+class Background;
+class Axis;
 class CONTEXT;
 
 enum MODE{WINDOWED, FULLSCREEN};
@@ -59,6 +61,8 @@ extern CONTEXT * context;
 #include "shader.h"
 #include "view.h"
 #include "object.h"
+#include "background.h"
+#include "axis.h"
 #include "window.h"
 #include "controls.h"
 

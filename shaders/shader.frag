@@ -22,7 +22,11 @@ uniform int uLighting;
 // 0 - brute color
 // 1 - .sol color
 // 2 - normal colors
+// 3 - checker
 uniform int uColor;
+
+//picking rendering
+uniform int picking;
 
 uniform mat4 MVP;
 uniform mat4 M;
@@ -37,14 +41,14 @@ void main(){
 
   vec3 temp_color = vec3(1,1,1);
 
-  mat4 LM = mat4( 
+  mat4 LM = mat4(
   vec4(-2,2,10,0),
   vec4(1,1,1,0),
   vec4(0.15,0.75,0.1,0),
   vec4(120,12.0,1,0)
   );
 
-  mat4 back = mat4( 
+  mat4 back = mat4(
   vec4(0,0,-10,0),
   vec4(1,1,1,0),
   vec4(0,0.85,0.15,0),
@@ -67,6 +71,16 @@ void main(){
   else if(uLighting == 2)
     temp_color = light(LM, temp_color, 1) + light(back, temp_color, 1);
 
-  out_color = temp_color;
+  if(picking == 1)
+    out_color = objectColor;
+  else
+    out_color = temp_color;
+
+  if (uColor == 3){
+    if( (int(20*frag_position.x+20) + int(20*frag_position.z+20) ) %2 < 1)
+      out_color = vec3(0,0,0);
+    else
+      out_color = vec3(1,1,1);
+  }
 
 }

@@ -6,20 +6,17 @@
 class Object{
 public:
   int nbVertices;
-	
+  glm::vec3 pickingColor;
+  int       id;
+
   std::vector<float>  vertices;
   std::vector<float>  normals;
   std::vector<float>  colors;
-
   std::vector<int>    refTri, refTet, refVert;
   std::vector<int>    indTri, indTet;
   std::vector<int>    adjacent;
 
-  std::vector<std::string> meshfiles;
-  std::vector<int>         nbTris;
-  bool                     multipleMeshes=false;
-  int                      currentMesh=0;
-  
+  std::string         meshfile;
 
   GLuint              mBuffer;
   GLuint              nBuffer;
@@ -29,21 +26,24 @@ public:
 
   float               scale;
   glm::vec3           translation;
-  glm::mat4	      MODEL;
+  glm::mat4	          MODEL;
+
+  bool selected = false;
 
   //Parent
   Scene* parentScene;
 
   Object(Scene* scene);
+  Object(Object* object);
   Object(Scene* scene, char * mesh_path);
-  Object(Scene* scene, char ** pathes, int nbPathes);
   void createGeometry();
   void createGeometry(char * mesh_path);
-  void createGeometry(char ** pathes, int nbPathes);
   void computeBoundingBox();
   void scaleAndTranslate();
   void createAndBindBuffers();
+
   void render();
+  void pickingRender();
 };
 
 #endif
