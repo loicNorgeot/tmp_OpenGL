@@ -1,0 +1,16 @@
+language: c++
+compiler:
+  - gcc
+  - clang
+os:
+  - linux
+  - osx
+before_script:
+  - cd .
+script:
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  - make install
+  - cd -
