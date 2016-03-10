@@ -14,9 +14,9 @@ public:
   //Parent
   Window* parentWindow;
   bool selected;
-  bool ground=false;
+  bool ground;
   glm::vec3 center;
-  float scale = 0.5f;
+  float scale;
 
   Scene(Window* window);
   void addObject(Object* o);

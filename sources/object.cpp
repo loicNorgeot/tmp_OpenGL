@@ -23,10 +23,10 @@ Object::Object(char * mesh_path){
 }
 void Object::computeID(int _id){
   id = _id;
-  std::cout << id << std::endl;
   pickingColor = glm::vec3( (id%255)/255. + 1/255. , (id/255)/255. , 0 );
 }
 void Object::init(Scene* scene){
+  selected = false;
   parentScene = scene;
   computeBoundingBox();
   scaleAndTranslate();

@@ -1,6 +1,8 @@
 #include "scene.h"
 
 Scene::Scene(Window* window){
+  scale = 0.5f;
+  ground = false;
   parentWindow = window;
   view = new View(this);
   axis = new Axis(this);

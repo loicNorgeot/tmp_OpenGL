@@ -10,7 +10,6 @@ void setActiveWindow(GLFWwindow* window){
     }
   glfwMakeContextCurrent(context->window->window);
 }
-
 bool intersects(Window* window, glm::vec3 center, glm::vec3 normal, glm::vec2 cursor, glm::vec3 &intersection){
   View* view = window->scene->view;
 
@@ -45,7 +44,6 @@ float orientedAngle(glm::vec3 pt1, glm::vec3 pt2, glm::vec3 center, glm::vec3 ax
                              glm::normalize(glm::vec3(center.x - pt2.x, center.y, center.z - pt2.z)),
                              axis);
 }
-
 
 Controls::Controls(Window * window){
   parentWindow = window;

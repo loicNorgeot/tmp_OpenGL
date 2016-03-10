@@ -28,7 +28,7 @@ public:
   glm::vec3           translation;
   glm::mat4	          MODEL;
 
-  bool selected = false;
+  bool selected;
 
   //Parent
   Scene* parentScene;
