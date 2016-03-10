@@ -1,5 +1,7 @@
 #include "context.h"
 
+CONTEXT * context;
+
 void CONTEXT::addWindow(Window* w){
   windows.push_back(w);
 }

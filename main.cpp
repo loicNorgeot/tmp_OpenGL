@@ -1,7 +1,5 @@
 #include "commons.h"
 
-CONTEXT * context;
-
 int main(int argc, char** argv){
   context = new CONTEXT();
 
