@@ -5,8 +5,21 @@ compiler:
 os:
   - linux
   - osx
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libglew-dev
+  - sudo apt-get install -y libglew-dev
+  - brew update
+  - brew install glfw3
+  - brew install glew
 before_script:
-  - cd .
+  - git clone https://github.com/ICStoolbox/Commons.git
+  - mkdir Commons/build
+  - cd Commons/build
+  - cmake ..
+  - make 
+  - make install
+  - cd -
 script:
   - mkdir build
   - cd build
