@@ -3,6 +3,8 @@
 #include <glm/gtx/intersect.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+glm::mat4 tmpMODEL;
+
 void setActiveWindow(GLFWwindow* window){
   for(Window* win : context->windows)
     if(win->window == window){
@@ -81,6 +83,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
           if(o->selected){
             std::cout << "Cutting " << o->meshfile << std::endl;
             glfwSetClipboardString(window, o->meshfile.c_str());
+            tmpMODEL = o->MODEL;
             context->window->scene->objects.erase(context->window->scene->objects.begin()+i);
           }
         }
@@ -92,6 +95,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
           if(o->selected){
             std::cout << "Copying " << o->meshfile << std::endl;
             glfwSetClipboardString(window, o->meshfile.c_str());
+            tmpMODEL = o->MODEL;
           }
         }
       }
@@ -107,6 +111,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glm::vec3 inter;
         double x,y;
         glfwGetCursorPos(context->window->window, &x, &y);
+        context->window->scene->objects.back()->MODEL = tmpMODEL;
         if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec2(x,y), inter))
           context->window->scene->objects.back()->MODEL[3] = glm::vec4(inter,1);
         else
@@ -231,10 +236,29 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       }
       else{
         glm::vec3 inter, oldInter;
-        if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter)){
+        if(intersects(context->window, glm::vec3(0,(*M)[3][1],0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,(*M)[3][1],0), glm::vec3(0,1,0), old, oldInter)){
           float angle = orientedAngle(oldInter, inter, glm::vec3((*M)[3]), glm::vec3(0,1,0));
           rot = glm::toMat4(glm::angleAxis(angle, glm::vec3(0,1,0)));
         }
+
+        //Est ce qu'on dépasse?
+        glm::vec3 s  = context->window->scene->active->size;
+        glm::vec3 sc = context->window->scene->center;
+        std::vector<glm::vec3> corners;
+        glm::vec3 bounds = glm::vec3(0.5,0,0.5);
+        corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(-s.x,0,-s.z),1)));
+        corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(+s.x,0,-s.z),1)));
+        corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(+s.x,0,+s.z),1)));
+        corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(-s.x,0,+s.z),1)));
+        for(glm::vec3 c : corners){
+          //glm::vec3 newPos = c - sc;
+          glm::vec3 center = glm::vec3((context->window->scene->active->MODEL)[3])+sc;
+          glm::vec3 newPos = glm::vec3( glm::translate(glm::mat4(1), center) * rot * glm::translate(glm::mat4(1), -center) * glm::vec4(c,1) )-sc;
+          print(newPos);
+          if(newPos.x > bounds.x || newPos.x < -bounds.x || newPos.z > bounds.z || newPos.z < -bounds.z)
+            rot = glm::mat4(1);
+        }
+
       }
       glm::vec3 center = glm::vec3((context->window->scene->active->MODEL)[3]);
       *M = glm::translate(glm::mat4(1), center) * rot * glm::translate(glm::mat4(1), -center) * *M;
@@ -246,7 +270,8 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       glm::vec3 tr, inter, oldInter;
       if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter))
         tr = inter-oldInter;
-
+      if(context->window == context->windows[0])
+        tr.x = 0;
       context->window->scene->center = context->window->scene->center + tr;
       for(Object* obj : context->window->scene->objects)
         obj->MODEL[3] = glm::translate(glm::mat4(1), tr) * obj->MODEL[3];
@@ -265,6 +290,26 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
         glm::vec3 inter, oldInter;
         if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter))
           tr = inter-oldInter;
+        if(context->window == context->windows[0])
+          tr.x = 0;
+      }
+
+      //Est ce qu'on dépasse?
+      glm::vec3 s  = context->window->scene->active->size;
+      glm::vec3 sc = context->window->scene->center;
+      std::vector<glm::vec3> corners;
+      glm::vec3 bounds = glm::vec3(0.5,0,0.5);
+      corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(-s.x,0,-s.z),1)));
+      corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(+s.x,0,-s.z),1)));
+      corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(+s.x,0,+s.z),1)));
+      corners.push_back(glm::vec3(*M * glm::vec4( glm::vec3(-s.x,0,+s.z),1)));
+      bool goesOut = false;
+      for(glm::vec3 c : corners){
+        glm::vec3 newPos = c - sc + tr;
+        if(newPos.x > bounds.x || newPos.x < -bounds.x)
+          tr.x = 0;
+        if(newPos.z > bounds.z || newPos.z < -bounds.z)
+          tr.z = 0;
       }
       *M = glm::translate(glm::mat4(1) , tr) * *M;
     }
@@ -341,8 +386,11 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
     Object* obj = NULL;
     for(Object* o : context->window->scene->objects){
-      if(o->id == id-1)
+      if(o->id == id-1){
+        std::cout << o->meshfile << std::endl;
+        print(o->size);
         obj = o;
+      }
       else
         o->selected = false;
     }

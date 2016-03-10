@@ -12,17 +12,16 @@ int main(int argc, char** argv){
   else if(argc>2){
     //Fenêtre de gauche: cube
     Window* leftWindow = new Window(WINDOWED, 366,  768, 0,   0);
-    leftWindow->addObject( new Object() );
-    leftWindow->addObject(new Object(argv[1]));
-    leftWindow->addObject(new Object(argv[2]));
+    for(int i = 1 ; i < argc ; i++){
+      Object* obj = new Object(argv[i]);
+      leftWindow->addObject(obj);
+      obj->MODEL = glm::translate(obj->MODEL, glm::vec3(0,0,0.25f*i));
+    }
 
     //Fenêtre de droite : objets
     Window* rightWindow = new Window(WINDOWED, 1000, 768, 366, 0);
-    for(int i = 1 ; i < argc ; i++)
-      rightWindow->addObject( new Object(argv[i]) );
+    rightWindow->addObject(new Object(argv[1]));
     rightWindow->addGround();
-
-
   }
 
   else

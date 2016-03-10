@@ -16,10 +16,12 @@ Object::Object(Object* obj){
   normals = obj->normals;
   indTri = obj->indTri;
   meshfile = obj->meshfile;
+  MODEL = glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(1,0,0));
 }
 Object::Object(char * mesh_path){
   meshfile = mesh_path;
   createGeometry(mesh_path);
+  MODEL = glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(1,0,0));
 }
 void Object::computeID(int _id){
   id = _id;
@@ -30,9 +32,9 @@ void Object::init(Scene* scene){
   parentScene = scene;
   computeBoundingBox();
   scaleAndTranslate();
-  MODEL = glm::mat4(1);
   createAndBindBuffers();
   computeID(context->window->scene->objects.size()+1);
+
 }
 void Object::computeBoundingBox(){
   glm::vec3 bbmin = glm::vec3(FLOAT_MAX);
@@ -40,24 +42,29 @@ void Object::computeBoundingBox(){
   for (int i=0; i<vertices.size(); i+=3) {
     for(int j = 0 ; j < 3 ; j++){
       if ( vertices[i+j] < bbmin[j] )
-	bbmin[j] = vertices[i+j];
+        bbmin[j] = vertices[i+j];
       if ( vertices[i+j] > bbmax[j] )
-	bbmax[j] = vertices[i+j];
+        bbmax[j] = vertices[i+j];
     }
   }
-  glm::vec3 size    = bbmax - bbmin;
+  size    = bbmax - bbmin;
   float maxDim      = std::max( std::max(size.x, size.y) , size.z );
 
   //Scle and translation for initial positionning
   translation = -0.5f * (bbmin + bbmax);
-  parentScene->scale = 0.5f * std::max( 0.5f/maxDim, parentScene->scale);
-  scale       = parentScene->scale;// / maxDim;
+
+  //Used for trespassing
+  size = 0.5f * (bbmax-bbmin);;
+  print(size);
+
+  parentScene->scale = 1.0f;// * std::max( 0.5f/maxDim, parentScene->scale);
+  //scale       = parentScene->scale;// / maxDim;
 }
 void Object::scaleAndTranslate(){
   for(int i = 0 ; i < vertices.size() ; i+=3){
     for(int j = 0 ; j < 3 ; j++){
       vertices[i+j] += translation[j];
-      vertices[i+j] *= scale;
+      //vertices[i+j] *= scale;
     }
   }
 }
@@ -280,15 +287,7 @@ void Object::createAndBindBuffers(){
   bindBuffer(1, shaderID, nBuffer, "vertex_normal");
   bindBuffer(2, shaderID, cBuffer, "vertex_color");
   bindIndicesBuffer(iBuffer);
-
-  parentScene->parentWindow->controls->lighting = 1;
-  if(nBuffer!=-1)
-    parentScene->parentWindow->controls->lighting = 2;
-  if(cBuffer!=-1)
-    parentScene->parentWindow->controls->colors = 1;
-
 }
-
 
 void Object::render(){
   /*
@@ -321,10 +320,10 @@ void Object::render(){
 
   GLenum render;
   switch(structure){
-  case(0): render = GL_FILL;  break;
-  case(1): render = GL_FILL;  break;
-  case(2): render = GL_LINE;  break;
-  case(3): render = GL_POINT; break;
+    case(0): render = GL_FILL;  break;
+    case(1): render = GL_FILL;  break;
+    case(2): render = GL_LINE;  break;
+    case(3): render = GL_POINT; break;
   }
 
   //OpenGL statements
@@ -353,7 +352,7 @@ void Object::render(){
   //Transformations
   //if(context->window->controls->animate)
   //  MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
-  glm::mat4 MVP = parentScene->view->PROJ * parentScene->view->VIEW * MODEL;
+  glm::mat4 MVP = parentScene->view->PROJ * parentScene->view->VIEW * glm::scale(MODEL, glm::vec3(parentScene->scale));
 
   //According parameters to the mesh
   if(cBuffer == -1){
@@ -367,9 +366,10 @@ void Object::render(){
       parentScene->parentWindow->controls->colors = 0;
   }
 
+  glm::mat4 M = glm::scale(MODEL, glm::vec3(parentScene->scale));
   //Uniform sending
   send(ID, MVP, 	                              "MVP");
-  send(ID, MODEL, 	                            "M");
+  send(ID, M,                                   "M");
   send(ID, parentScene->view->VIEW,             "V");
   send(ID, parentScene->parentWindow->controls->lighting, "uLighting");
   send(ID, parentScene->parentWindow->controls->colors,   "uColor");
@@ -404,7 +404,7 @@ void Object::pickingRender(){
   glUseProgram(ID);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
+  glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * glm::scale(MODEL, glm::vec3(parentScene->scale));
   send(ID, MVP,"MVP");
   send(ID, 0, "uColor");
   send(ID, 1, "picking");
@@ -419,7 +419,6 @@ void Object::pickingRender(){
 
 
 /*
-
 //data structures
 typedef struct {
   int    min,ind,nxt,elt;

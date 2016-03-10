@@ -29,6 +29,7 @@ public:
   glm::mat4	          MODEL;
 
   bool selected;
+  glm::vec3 size;
 
   //Parent
   Scene* parentScene;

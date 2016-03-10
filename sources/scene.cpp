@@ -8,6 +8,7 @@ Scene::Scene(Window* window){
   axis = new Axis(this);
   selected = true;
   center = glm::vec3(0);
+  parentWindow->controls->lighting = 2;
 }
 void Scene::addObject(Object* o){
   objects.push_back(o);
