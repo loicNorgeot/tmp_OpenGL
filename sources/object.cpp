@@ -7,26 +7,33 @@ extern "C" {
 #define FLOAT_MAX 1.e20
 float alpha = 0.0f;
 
-
-Object::Object(Scene* scene){
-  parentScene = scene;
+Object::Object(){
   createGeometry();
-  computeBoundingBox();
-  createAndBindBuffers();
-  id = 1;
-  pickingColor = glm::vec3(1,1,1);
 }
-Object::Object(Scene* scene, char * mesh_path){
-  parentScene = scene;
+Object::Object(Object* obj){
+  vertices = obj->vertices;
+  colors = obj->colors;
+  normals = obj->normals;
+  indTri = obj->indTri;
+  meshfile = obj->meshfile;
+}
+Object::Object(char * mesh_path){
+  meshfile = mesh_path;
   createGeometry(mesh_path);
-  computeBoundingBox();
-  scaleAndTranslate();
-  createAndBindBuffers();
-  MODEL = glm::mat4(1);
-  id = scene->objects.size();
+}
+void Object::computeID(int _id){
+  id = _id;
+  std::cout << id << std::endl;
   pickingColor = glm::vec3( (id%255)/255. + 1/255. , (id/255)/255. , 0 );
 }
-
+void Object::init(Scene* scene){
+  parentScene = scene;
+  computeBoundingBox();
+  scaleAndTranslate();
+  MODEL = glm::mat4(1);
+  createAndBindBuffers();
+  computeID(context->window->scene->objects.size()+1);
+}
 void Object::computeBoundingBox(){
   glm::vec3 bbmin = glm::vec3(FLOAT_MAX);
   glm::vec3 bbmax = glm::vec3(-FLOAT_MAX);
@@ -38,10 +45,13 @@ void Object::computeBoundingBox(){
 	bbmax[j] = vertices[i+j];
     }
   }
-  translation = -0.5f * (bbmin + bbmax);
   glm::vec3 size    = bbmax - bbmin;
   float maxDim      = std::max( std::max(size.x, size.y) , size.z );
-  scale     = 0.5f / maxDim;
+
+  //Scle and translation for initial positionning
+  translation = -0.5f * (bbmin + bbmax);
+  parentScene->scale = 0.5f * std::max( 0.5f/maxDim, parentScene->scale);
+  scale       = parentScene->scale;// / maxDim;
 }
 void Object::scaleAndTranslate(){
   for(int i = 0 ; i < vertices.size() ; i+=3){
@@ -51,7 +61,6 @@ void Object::scaleAndTranslate(){
     }
   }
 }
-
 void Object::createGeometry(){
   vertices = std::vector<float>{
     -1.0, -1.0,  1.0,
@@ -101,7 +110,6 @@ void Object::createGeometry(){
     1, 1, 1
   };
 }
-
 void Object::createGeometry(char * mesh_path){
   std::string meshFile    = std::string(mesh_path);
 
@@ -265,7 +273,7 @@ void Object::createAndBindBuffers(){
   createBuffer(&cBuffer, &colors);
   createBuffer(&iBuffer, &indTri);
 
-  int shaderID = parentScene->parentWindow->parentContext->shader->ID;
+  int shaderID = parentScene->parentWindow->shader->ID;
   glUseProgram(shaderID);
   glBindVertexArray(VAO);
   bindBuffer(0, shaderID, mBuffer, "vertex_position");
@@ -309,7 +317,7 @@ void Object::render(){
 
   int structure = parentScene->parentWindow->controls->structure;
   GLenum cull   = parentScene->parentWindow->controls->cull;
-  int    ID     = parentScene->parentWindow->parentContext->shader->ID;
+  int    ID     = parentScene->parentWindow->shader->ID;
 
   GLenum render;
   switch(structure){
@@ -340,6 +348,7 @@ void Object::render(){
     glEnable(GL_CULL_FACE);
     glCullFace(cull);
   }
+  glDisable(GL_CULL_FACE);
 
   //Transformations
   //if(context->window->controls->animate)
@@ -390,17 +399,21 @@ void Object::render(){
   glBindVertexArray(0);
 }
 void Object::pickingRender(){
-  int    ID     = parentScene->parentWindow->parentContext->shader->ID;
+  int    ID     = parentScene->parentWindow->shader->ID;
   glBindVertexArray(VAO);
   glUseProgram(ID);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   glm::mat4 MVP = (parentScene->view->PROJ) * (parentScene->view->VIEW) * MODEL;
   send(ID, MVP,"MVP");
+  send(ID, 0, "uColor");
   send(ID, 1, "picking");
   send(ID, pickingColor, "objectColor");
   glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
   glBindVertexArray(0);
+  if(parentScene->ground)
+    parentScene->background->render();
+  glFlush();
 }
 
 

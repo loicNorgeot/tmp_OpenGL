@@ -40,7 +40,7 @@ void Background::createAndBindBuffers(){
   createBuffer(&cBuffer, &colors);
   createBuffer(&iBuffer, &indTri);
 
-  int shaderID = parentScene->parentWindow->parentContext->shader->ID;
+  int shaderID = parentScene->parentWindow->shader->ID;
   glUseProgram(shaderID);
   glBindVertexArray(VAO);
   bindBuffer(0, shaderID, mBuffer, "vertex_position");
@@ -51,7 +51,7 @@ void Background::createAndBindBuffers(){
 
 
 void Background::render(){
-  int ID = parentScene->parentWindow->parentContext->shader->ID;
+  int ID = parentScene->parentWindow->shader->ID;
   glUseProgram(ID);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);

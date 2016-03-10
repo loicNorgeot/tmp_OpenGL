@@ -33,9 +33,12 @@ public:
   //Parent
   Scene* parentScene;
 
-  Object(Scene* scene);
+  Object();
+  Object(char * mesh_path);
   Object(Object* object);
-  Object(Scene* scene, char * mesh_path);
+  void init(Scene* scene);
+  void computeID(int _id);
+
   void createGeometry();
   void createGeometry(char * mesh_path);
   void computeBoundingBox();

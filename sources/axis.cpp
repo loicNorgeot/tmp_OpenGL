@@ -24,7 +24,7 @@ void Axis::createGeometry(){
 void Axis::createAndBindBuffers(){
   createVAO(&VAO);
   createBuffer(&mBuffer, &vertices);
-  int shaderID = parentScene->parentWindow->parentContext->shader->ID;
+  int shaderID = parentScene->parentWindow->shader->ID;
   glUseProgram(shaderID);
   glBindVertexArray(VAO);
   bindBuffer(0, shaderID, mBuffer, "vertex_position");
@@ -32,7 +32,7 @@ void Axis::createAndBindBuffers(){
 
 
 void Axis::render(){
-  int ID = parentScene->parentWindow->parentContext->shader->ID;
+  int ID = parentScene->parentWindow->shader->ID;
   glUseProgram(ID);
   glDisable(GL_DEPTH_TEST);
   glPolygonMode(GL_FRONT_AND_BACK, GL_LINES);

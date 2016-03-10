@@ -7,10 +7,10 @@ class Shader
 {
 public:
   GLuint      ID;
-  CONTEXT * parentContext;
-  Shader(CONTEXT * context){
+  Window* parentWindow;
+  Shader(Window* window){
     ID = 0;
-    parentContext = context;
+    parentWindow = window;
   }
   void 		load(std::string vert_path, std::string frag_path, std::string functions_file_path);
 };

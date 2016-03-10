@@ -77,7 +77,7 @@ void main(){
     out_color = temp_color;
 
   if (uColor == 3){
-    if( (int(20*frag_position.x+20) + int(20*frag_position.z+20) ) %2 < 1)
+    if( (int(20*frag_position.x+20) + int(20*frag_position.z+20) + int(20*frag_position.y+20) ) %2 < 1)
       out_color = vec3(0,0,0);
     else
       out_color = vec3(1,1,1);

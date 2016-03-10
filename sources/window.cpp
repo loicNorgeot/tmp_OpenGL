@@ -1,6 +1,23 @@
 #include "window.h"
 
-Window::Window(CONTEXT * context, MODE windowMode, int resX, int resY, int posX=0, int posY=0){
+void initGLFW(){
+  if(!glfwInit()){
+    fprintf(stderr, "Failed to initialize GLFW\n");
+    exit(-1);
+  }
+}
+void initGLEW(){
+  glewExperimental = GL_TRUE;
+  GLenum err = glewInit();
+  if (GLEW_OK != err){
+    fprintf(stderr, "Error: %s\n", glewGetErrorString(err));
+    exit(-1);
+  }
+}
+
+Window::Window(MODE windowMode, int resX, int resY, int posX=0, int posY=0){
+  shader = new Shader(this);
+  initGLFW();
   parentContext = context;
   glfwWindowHint(GLFW_SAMPLES, 4);
   glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -22,19 +39,31 @@ Window::Window(CONTEXT * context, MODE windowMode, int resX, int resY, int posX=
     glfwTerminate();
     exit(-1);
   }
-}
 
-void Window::init(){
+  initGLEW();
+
+  shader->load(shadersPath + "shader.vert", shadersPath + "shader.frag", shadersPath + "shader.functions");
   controls = new Controls(this);
   scene    = new Scene(this);
+  context->window = this;
+  parentContext->addWindow(this);
+}
+void Window::addObject(Object * o){
+  glfwMakeContextCurrent(window);
+  scene->addObject(o);
+}
+void Window::addGround(){
+  glfwMakeContextCurrent(window);
+  scene->addGround();
 }
 void Window::render(){
+  glClearColor(0.1,0.1,0.1,1);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   scene->render();
-  glFlush();
 }
 void Window::swap(){
-  glfwMakeContextCurrent(window);
   glfwSwapBuffers(window);
   glfwSwapInterval(1);
 }
+
 

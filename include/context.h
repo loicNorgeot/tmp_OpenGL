@@ -7,9 +7,9 @@ class CONTEXT{
 public:
   Window* window;
   std::vector<Window*> windows;
-  Shader* shader;
 
-  CONTEXT(MODE mode);
+  CONTEXT(){};
+  void addWindow(Window* w);
   void render();
   bool shouldStop();
   int stop();

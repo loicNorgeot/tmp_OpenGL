@@ -8,10 +8,12 @@ class Window{
   GLFWwindow* window;
   Controls*   controls;
   Scene*      scene;
-  CONTEXT *   parentContext;
+  CONTEXT*    parentContext;
+  Shader*     shader;
 
-  Window(CONTEXT * context, MODE windowMode, int resX, int resY, int posX, int posY);
-  void init();
+  Window(MODE windowMode, int resX, int resY, int posX, int posY);
+  void addObject(Object * o);
+  void addGround();
   void render();
   void swap();
 };

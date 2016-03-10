@@ -1,5 +1,8 @@
 #include "controls.h"
 
+#include <glm/gtx/intersect.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
 void setActiveWindow(GLFWwindow* window){
   for(Window* win : context->windows)
     if(win->window == window){
@@ -7,6 +10,43 @@ void setActiveWindow(GLFWwindow* window){
     }
   glfwMakeContextCurrent(context->window->window);
 }
+
+bool intersects(Window* window, glm::vec3 center, glm::vec3 normal, glm::vec2 cursor, glm::vec3 &intersection){
+  View* view = window->scene->view;
+
+  int       w = view->w;
+  int       h = view->h;
+
+  glm::vec2 norm_pos(((float)cursor.x/((float)w*0.5f) - 1) * (float)w/(float)h, 1.0f - (float)cursor.y/((float)h*0.5f));
+
+  float     fov             = view->fov;
+  float     tan             = tanf(fov * 0.5f);
+  glm::vec2 fov_coordinates = tan * norm_pos;
+  float     near            = view->min;
+  float     far             = view->max;
+
+  glm::vec3 near_point(fov_coordinates.x * near, fov_coordinates.y * near, -near);
+  glm::vec3 far_point( fov_coordinates.x * far,  fov_coordinates.y * far,  -far);
+
+  //World coordinates
+  glm::mat4 inv             = glm::inverse(view->VIEW);
+  near_point                = view->cam + glm::vec3( inv * glm::vec4(near_point, 1) );
+  far_point                 = view->cam + glm::vec3( inv * glm::vec4(far_point,  1) );
+  glm::vec3 ray             = glm::normalize(far_point - near_point);
+
+  float      intersectDist;
+  bool intersectionExists = glm::intersectRayPlane(view->cam, ray, center, normal, intersectDist);
+  if(intersectionExists)
+    intersection = view->cam + intersectDist * ray;
+  return intersectionExists;
+}
+float orientedAngle(glm::vec3 pt1, glm::vec3 pt2, glm::vec3 center, glm::vec3 axis){
+  return glm::orientedAngle( glm::normalize(glm::vec3(center.x - pt1.x, center.y, center.z - pt1.z)),
+                             glm::normalize(glm::vec3(center.x - pt2.x, center.y, center.z - pt2.z)),
+                             axis);
+}
+
+
 Controls::Controls(Window * window){
   parentWindow = window;
   cull    = GL_BACK;
@@ -19,7 +59,6 @@ Controls::Controls(Window * window){
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
-  setActiveWindow(window);
   if(action == GLFW_PRESS){
     if(key == GLFW_KEY_ESCAPE)
       glfwSetWindowShouldClose(window, GL_TRUE);
@@ -36,10 +75,50 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         context->window->controls->cull = GL_BACK;
     }
 
-    if(key == GLFW_KEY_C){
-      context->window->controls->colors++;
-      context->window->controls->colors = context->window->controls->colors % 3;
+
+    if(key == GLFW_KEY_X){
+      if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+        for(int i = 0 ; i < context->window->scene->objects.size() ; i++){
+          Object* o = context->window->scene->objects[i];
+          if(o->selected){
+            std::cout << "Cutting " << o->meshfile << std::endl;
+            glfwSetClipboardString(window, o->meshfile.c_str());
+            context->window->scene->objects.erase(context->window->scene->objects.begin()+i);
+          }
+        }
+      }
     }
+    if(key == GLFW_KEY_C){
+      if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+        for(Object* o : context->window->scene->objects){
+          if(o->selected){
+            std::cout << "Copying " << o->meshfile << std::endl;
+            glfwSetClipboardString(window, o->meshfile.c_str());
+          }
+        }
+      }
+      else{
+        context->window->controls->colors++;
+        context->window->controls->colors = context->window->controls->colors % 3;
+      }
+    }
+    if(key == GLFW_KEY_V){
+      if(glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
+        std::cout << "Pasting " << glfwGetClipboardString(window) << std::endl;
+        context->window->addObject(new Object((char*)glfwGetClipboardString(window)));
+        glm::vec3 inter;
+        double x,y;
+        glfwGetCursorPos(context->window->window, &x, &y);
+        if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec2(x,y), inter))
+          context->window->scene->objects.back()->MODEL[3] = glm::vec4(inter,1);
+        else
+          context->window->scene->objects.back()->MODEL[3] = glm::vec4(0,0,0,1);
+        for(int i = 0 ; i < context->window->scene->objects.size() ; i++)
+          context->window->scene->objects[i]->computeID(i+1);
+      }
+    }
+
+
 
     if(key == GLFW_KEY_L){
       context->window->controls->lighting++;
@@ -74,6 +153,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       context->window->scene->view->update();
     }
 
+
+    if(key == GLFW_KEY_S){
+      for(Object* obj : context->window->scene->objects){
+        if(obj->selected)
+          obj->MODEL = glm::scale(obj->MODEL, glm::vec3(-1,1,1));
+      }
+    }
+
+
+
     /*
     if( key == GLFW_KEY_UP ){
       for(int i = 0 ; i < context->window->scene->objects.size() ; i++){
@@ -107,8 +196,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   }
 }
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
-  setActiveWindow(window);
   glm::vec2 pos(xpos, ypos);
+
   glm::vec2  old   = context->window->controls->oldPos;
   View*      view  = context->window->scene->view;
   glm::mat4* M     = &context->window->scene->active->MODEL;
@@ -117,9 +206,10 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
   glm::vec3* right = &view->right;
   //Clic gauche: rotation
   if(context->window->controls->buttons[0]){
+    glm::vec2 diff = pos - old;
     if(context->window->scene->selected){
-      glm::quat qRot =  glm::angleAxis(0.01f * (float)(pos.y - old.y), *right) *
-                        glm::angleAxis(0.01f * (float)(pos.x - old.x), glm::vec3(0,1,0));
+      glm::quat qRot =  glm::angleAxis(0.01f * (float)(diff.y), *right) *
+                        glm::angleAxis(0.01f * (float)(diff.x), glm::vec3(0,1,0));
       glm::vec3 center = glm::vec3(0);//context->window->scene->center;
       glm::mat4 rot = glm::inverse(glm::translate(glm::mat4(1), center) * glm::toMat4(qRot) * glm::translate(glm::mat4(1), -center));
       *cam   = glm::vec3( rot * glm::vec4(*cam,0) );
@@ -132,19 +222,21 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       glm::mat4 rot;
       if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
         if(glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-          rot = glm::toMat4(glm::angleAxis(0.0025f * (float)(pos.y - old.y), glm::vec3(1,0,0)));
+          rot = glm::toMat4(glm::angleAxis(0.0025f * (float)(diff.y), glm::vec3(1,0,0)));
         else if(glfwGetKey(window, GLFW_KEY_Y) == GLFW_PRESS)
-          rot = glm::toMat4(glm::angleAxis(0.0025f * (float)(pos.y - old.y), glm::vec3(0,0,1)));
+          rot = glm::toMat4(glm::angleAxis(0.0025f * (float)(diff.y), glm::vec3(0,0,1)));
         else{
-          rotX = glm::angleAxis(0.0025f * (float)(pos.x - old.x), glm::normalize(*up));
-          rotY = glm::angleAxis(0.0025f * (float)(pos.y - old.y), glm::normalize(*right));
+          rotX = glm::angleAxis(0.0025f * (float)(diff.x), glm::normalize(*up));
+          rotY = glm::angleAxis(0.0025f * (float)(diff.y), glm::normalize(*right));
           rot = glm::toMat4(rotX * rotY);
         }
       }
       else{
-        rotX = glm::angleAxis(0.01f * (float)(pos.x - old.x), glm::vec3(0,1,0));
-        rotY = glm::angleAxis(0.0f, glm::normalize(*right));
-        rot = glm::toMat4(rotX * rotY);
+        glm::vec3 inter, oldInter;
+        if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter)){
+          float angle = orientedAngle(oldInter, inter, glm::vec3((*M)[3]), glm::vec3(0,1,0));
+          rot = glm::toMat4(glm::angleAxis(angle, glm::vec3(0,1,0)));
+        }
       }
       glm::vec3 center = glm::vec3((context->window->scene->active->MODEL)[3]);
       *M = glm::translate(glm::mat4(1), center) * rot * glm::translate(glm::mat4(1), -center) * *M;
@@ -153,26 +245,28 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
   //Clic du milieu on translate
   if(context->window->controls->buttons[1]){
     if(context->window->scene->selected){
-      glm::vec3 trX = 0.0025f * (float)(pos.x - old.x) * glm::normalize(*right);
-      glm::vec3 trY = -0.0025f  * (float)(pos.y - old.y) * glm::normalize(*up);
-      glm::vec3 tr = trX + trY;
-      tr[1] = 0;
+      glm::vec3 tr, inter, oldInter;
+      if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter))
+        tr = inter-oldInter;
+
       context->window->scene->center = context->window->scene->center + tr;
       for(Object* obj : context->window->scene->objects)
         obj->MODEL[3] = glm::translate(glm::mat4(1), tr) * obj->MODEL[3];
-      context->window->scene->background->MODEL[3] = glm::translate(glm::mat4(1), tr) * context->window->scene->background->MODEL[3];
+      if(context->window->scene->ground)
+        context->window->scene->background->MODEL[3] = glm::translate(glm::mat4(1), tr) * context->window->scene->background->MODEL[3];
       view->update();
     }
     else{
       glm::vec3 tr;
       if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
-        tr = -0.00075f  * (float)(pos.y - old.y) * glm::vec3(0,1,0);
+        glm::vec3 inter,oldInter;
+        if(intersects(context->window, glm::vec3((*M)[3]), glm::vec3(view->cam.x,0,view->cam.z), pos, inter) && intersects(context->window, glm::vec3((*M)[3]), glm::vec3(view->cam.x,0,view->cam.z), old, oldInter))
+            tr = inter - oldInter;//oldInter - inter;//-0.00075f  * (float)(pos.y - old.y) * glm::vec3(0,1,0);
       }
       else{
-        glm::vec3 trX = 0.0025f * (float)(pos.x - old.x) * glm::normalize(*right);
-        glm::vec3 trY = -0.0025f  * (float)(pos.y - old.y) * glm::normalize(*up);
-        tr = trX + trY;
-        tr[1] = 0;
+        glm::vec3 inter, oldInter;
+        if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter))
+          tr = inter-oldInter;
       }
       *M = glm::translate(glm::mat4(1) , tr) * *M;
     }
@@ -214,14 +308,12 @@ void error_callback(int error, const char* description){
   exit(-1);
 }
 void window_size_callback(GLFWwindow* window, int width, int height){
-  setActiveWindow(window);
   context->window->scene->view->update();
   glViewport(0, 0, width, height);
 }
 void drop_callback(GLFWwindow* window, int count, const char** paths){
-  setActiveWindow(window);
   for (int i = 0;  i < count;  i++)
-    context->window->scene->active = new Object(context->window->scene, (char *)(paths[i]));// << std::endl;
+    context->window->scene->active = new Object((char *)(paths[i]));// << std::endl;
 }
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods){
   setActiveWindow(window);
@@ -277,16 +369,16 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     }
   }
 }
-void window_focus_callback(GLFWwindow* window, int focused){
-  if (focused){
-    setActiveWindow(window);
+void cursor_enter_callback(GLFWwindow* window, int entered){
+  if (entered){
     for(Window* win : context->windows)
-      if(win->window == window)
-        std::cout << win->scene->objects.size() << std::endl;
+      if(win->window == window){
+        context->window = win;
+      }
+    glfwMakeContextCurrent(context->window->window);
   }
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
-    setActiveWindow(window);
     if(yoffset > 0){
         context->window->scene->view->zoom *= 1 - 0.05;
         context->window->scene->view->update();
@@ -298,7 +390,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
 }
 
 void Controls::init(){
-  setActiveWindow(parentWindow->window);
   GLFWwindow * w = parentWindow->window;
 
   glfwSetKeyCallback(w, key_callback);
@@ -312,7 +403,7 @@ void Controls::init(){
   glfwSetWindowSizeCallback(w, window_size_callback);
   glfwSetErrorCallback(error_callback);
 
-  glfwSetWindowFocusCallback(w, window_focus_callback);
+  glfwSetCursorEnterCallback(w, cursor_enter_callback);
 
   glfwSetInputMode(w, GLFW_STICKY_KEYS, GL_TRUE);
 }
