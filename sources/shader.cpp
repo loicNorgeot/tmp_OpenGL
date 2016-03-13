@@ -34,21 +34,21 @@ void Shader::load(std::string vertex_file_path, std::string fragment_file_path, 
   }
 
   //Read the Functions from the functions file
-  std::string functionsCode;
-  std::ifstream functionsStream(functions_file_path, std::ios::in);
-  if(functionsStream.is_open()){
-    std::string Line = "";
-    while(getline(functionsStream, Line))
-      functionsCode += "\n" + Line;
-    functionsStream.close();
+  if(functions_file_path != ""){
+    std::string functionsCode;
+    std::ifstream functionsStream(functions_file_path, std::ios::in);
+    if(functionsStream.is_open()){
+      std::string Line = "";
+      while(getline(functionsStream, Line))
+        functionsCode += "\n" + Line;
+      functionsStream.close();
+    }
+    else{
+      std::cout << "Impossible to open " << functions_file_path << std::endl;
+      exit(-1);
+    }
+    FragmentShaderCode += functionsCode;
   }
-  else{
-    std::cout << "Impossible to open " << functions_file_path << std::endl;
-    exit(-1);
-  }
-
-  //VertexShaderCode += functionsCode;
-  FragmentShaderCode += functionsCode;
 
   GLint Result = GL_FALSE;
   int InfoLogLength=0;
@@ -96,10 +96,10 @@ void Shader::load(std::string vertex_file_path, std::string fragment_file_path, 
     exit(-1);
   }
   std::cout << "Succesfully linked the shader program" << std::endl;
-	
+
   glDetachShader(ProgramID, VertexShaderID);
   glDetachShader(ProgramID, FragmentShaderID);
-	
+
   glDeleteShader(VertexShaderID);
   glDeleteShader(FragmentShaderID);
 

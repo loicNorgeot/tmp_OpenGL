@@ -32,7 +32,8 @@ Window::Window(MODE windowMode, int resX, int resY, int posX=0, int posY=0){
   else if(windowMode == WINDOWED)
     window = glfwCreateWindow(resX, resY, "TEST", NULL, NULL);
   glfwMakeContextCurrent(window);
-  glfwSetWindowPos(window,posX, posY);
+  if(windowMode != FULLSCREEN)
+    glfwSetWindowPos(window,posX, posY);
 
   if(window==NULL){
     std::cout << "Can't create GLFW window" << std::endl;
@@ -46,6 +47,7 @@ Window::Window(MODE windowMode, int resX, int resY, int posX=0, int posY=0){
   controls = new Controls(this);
   scene    = new Scene(this);
   context->window = this;
+  FONT = new font(this);
   parentContext->addWindow(this);
 }
 void Window::addObject(Object * o){
@@ -64,6 +66,18 @@ void Window::render(){
 void Window::swap(){
   glfwSwapBuffers(window);
   glfwSwapInterval(1);
+}
+bool Window::shouldStop(){
+  if( glfwGetKey(window,GLFW_KEY_ESCAPE)==GLFW_PRESS || glfwWindowShouldClose(window)==1 ){
+    glfwDestroyWindow(window);
+    for(int i = 0 ; i < context->windows.size() ; i++)
+      if(context->windows[i] == this)
+        context->windows.erase(context->windows.begin() + i);
+    //Set context indow
+    return true;
+  }
+  else
+    return false;
 }
 
 

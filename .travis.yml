@@ -12,6 +12,7 @@ addons:
   apt:
     packages:
       - libglew-dev
+      - libfreetype6-dev
       
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi

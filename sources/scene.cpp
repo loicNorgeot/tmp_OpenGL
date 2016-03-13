@@ -21,7 +21,10 @@ void Scene::addGround(){
 void Scene::render(){
   if(ground)
     background->render();
-  for(int i = 0 ; i < objects.size() ; i++)
+  for(int i = 0 ; i < objects.size() ; i++){
     objects[i]->render();
+    if(objects[i]->selected)
+      parentWindow->FONT->render(objects[i]->name, 10, 10, 0.5, glm::vec3(1,1,0.5));
+  }
   axis->render();
 }

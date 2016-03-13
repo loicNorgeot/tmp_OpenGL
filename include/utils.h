@@ -2,6 +2,7 @@
 #define UTILS_H
 
 #include "commons.h"
+#include <sstream>
 
 //Debugging
 void print(glm::vec3 v);
@@ -23,5 +24,9 @@ void send(int ID, float     f, 	char* name);
 void send(int ID, int       i, 	char* name);
 void send(int ID, glm::vec3 v, 	char* name);
 void send(int ID, glm::mat4 &m, char* name);
+
+
+std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems);
+std::vector<std::string> split(const std::string &s, char delim);
 
 #endif

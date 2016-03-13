@@ -12,7 +12,7 @@ public:
     ID = 0;
     parentWindow = window;
   }
-  void 		load(std::string vert_path, std::string frag_path, std::string functions_file_path);
+  void load(std::string vert_path, std::string frag_path, std::string functions_file_path="");
 };
 
 #endif

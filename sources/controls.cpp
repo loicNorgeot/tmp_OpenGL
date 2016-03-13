@@ -60,6 +60,17 @@ Controls::Controls(Window * window){
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
   if(action == GLFW_PRESS){
+
+    if(key == GLFW_KEY_N){
+      for(int i = 0 ; i < context->window->scene->objects.size() ; i++){
+        Object* o = context->window->scene->objects[i];
+        if(o->selected){
+          Window* win = new Window(WINDOWED, 500, 500, 0, 0);
+          win->addObject(new Object(o));
+        }
+      }
+    }
+
     if(key == GLFW_KEY_ESCAPE)
       glfwSetWindowShouldClose(window, GL_TRUE);
 

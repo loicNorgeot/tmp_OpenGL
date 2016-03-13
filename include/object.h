@@ -17,6 +17,7 @@ public:
   std::vector<int>    adjacent;
 
   std::string         meshfile;
+  std::string         name;
 
   GLuint              mBuffer;
   GLuint              nBuffer;

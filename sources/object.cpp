@@ -16,10 +16,14 @@ Object::Object(Object* obj){
   normals = obj->normals;
   indTri = obj->indTri;
   meshfile = obj->meshfile;
+  name  = split(meshfile, '/').back();
+  std::cout << name << std::endl;
   MODEL = glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(1,0,0));
 }
 Object::Object(char * mesh_path){
   meshfile = mesh_path;
+  name  = split(meshfile, '/').back();
+  std::cout << name << std::endl;
   createGeometry(mesh_path);
   MODEL = glm::rotate(glm::mat4(1), 3.14159f, glm::vec3(1,0,0));
 }
@@ -347,7 +351,7 @@ void Object::render(){
     glEnable(GL_CULL_FACE);
     glCullFace(cull);
   }
-  glDisable(GL_CULL_FACE);
+  //glDisable(GL_CULL_FACE);
 
   //Transformations
   //if(context->window->controls->animate)

@@ -16,9 +16,13 @@ void CONTEXT::render(){
 }
 
 bool CONTEXT::shouldStop(){
-  bool goesOn = glfwGetKey(window->window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window->window) == 0;
+  bool goesOn = false;
+  for(Window * win : windows)
+    if(!win->shouldStop())
+      goesOn = true;
   return !goesOn;
 }
+
 int CONTEXT::stop(){
   for(Window* win : windows)
     glfwDestroyWindow(win->window);

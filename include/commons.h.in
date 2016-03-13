@@ -49,6 +49,7 @@ class Object;
 class View;
 class Scene;
 class Background;
+class font;
 class Axis;
 class CONTEXT;
 
@@ -65,5 +66,6 @@ extern CONTEXT * context;
 #include "axis.h"
 #include "window.h"
 #include "controls.h"
+#include "text.h"
 
 #endif

@@ -30,8 +30,10 @@ endif()
 
 find_package( OpenGL REQUIRED)
 find_package( X11    REQUIRED)
+find_package(Freetype REQUIRED)
+include_directories(${FREETYPE_INCLUDE_DIRS})
 
-set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew})
+set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${glew} ${FREETYPE_LIBRARIES})
 
 #find_package( GLEW REQUIRED)
 #set(CORELIBS ${common} ${glfw} ${OPENGL_LIBRARY} ${X11_LIBRARIES} ${GLEW_LIBRARIES})
