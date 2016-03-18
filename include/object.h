@@ -30,6 +30,7 @@ public:
   glm::mat4	          MODEL;
 
   bool selected;
+  bool clipped;
   glm::vec3 size;
 
   //Parent

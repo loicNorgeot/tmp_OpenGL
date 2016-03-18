@@ -15,7 +15,7 @@ void initGLEW(){
   }
 }
 
-Window::Window(MODE windowMode, int resX, int resY, int posX=0, int posY=0){
+Window::Window(CONTROLS type, MODE windowMode, int resX, int resY, int posX, int posY){
   shader = new Shader(this);
   initGLFW();
   parentContext = context;
@@ -43,6 +43,7 @@ Window::Window(MODE windowMode, int resX, int resY, int posX=0, int posY=0){
 
   initGLEW();
 
+  TYPE = type;
   shader->load(shadersPath + "shader.vert", shadersPath + "shader.frag", shadersPath + "shader.functions");
   controls = new Controls(this);
   scene    = new Scene(this);
@@ -60,7 +61,7 @@ void Window::addGround(){
 }
 void Window::render(){
   glClearColor(0.1,0.1,0.1,1);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   scene->render();
 }
 void Window::swap(){

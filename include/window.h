@@ -11,8 +11,9 @@ class Window{
   CONTEXT*    parentContext;
   Shader*     shader;
   font*       FONT;
+  CONTROLS    TYPE;
 
-  Window(MODE windowMode, int resX, int resY, int posX, int posY);
+  Window(CONTROLS type, MODE windowMode, int resX=640, int resY=480, int posX=0, int posY=0);
   void addObject(Object * o);
   void addGround();
   void render();

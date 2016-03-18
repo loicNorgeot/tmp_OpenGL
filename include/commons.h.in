@@ -54,6 +54,7 @@ class Axis;
 class CONTEXT;
 
 enum MODE{WINDOWED, FULLSCREEN};
+enum CONTROLS{GALERY, RECONSTRUCTION, MANIPULATION}
 
 extern CONTEXT * context;
 

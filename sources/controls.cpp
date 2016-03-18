@@ -58,14 +58,26 @@ Controls::Controls(Window * window){
   init();
 }
 
+//Fonctions de GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods){
   if(action == GLFW_PRESS){
 
+    //Clipping plane
+    if(key == GLFW_KEY_P){
+      for(int i = 0 ; i < context->window->scene->objects.size() ; i++){
+        Object* o = context->window->scene->objects[i];
+        if(o->selected){
+          o->clipped = !o->clipped;
+        }
+      }
+    }
+
+    //Open in a new window
     if(key == GLFW_KEY_N){
       for(int i = 0 ; i < context->window->scene->objects.size() ; i++){
         Object* o = context->window->scene->objects[i];
         if(o->selected){
-          Window* win = new Window(WINDOWED, 500, 500, 0, 0);
+          Window* win = new Window(MANIPULATION, WINDOWED, 500, 500, 0, 0);
           win->addObject(new Object(o));
         }
       }
@@ -123,6 +135,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         double x,y;
         glfwGetCursorPos(context->window->window, &x, &y);
         context->window->scene->objects.back()->MODEL = tmpMODEL;
+        context->window->scene->objects.back()->selected = true;
+        context->window->scene->active = context->window->scene->objects.back();
+        context->window->scene->selected = false;
         if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec2(x,y), inter))
           context->window->scene->objects.back()->MODEL[3] = glm::vec4(inter,1);
         else
@@ -144,29 +159,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 
     //Views
-    if(key == GLFW_KEY_KP_1){
-      context->window->scene->view->cam = glm::vec3(0,0,1);
-      context->window->scene->view->right = glm::vec3(1,0,0);
-      context->window->scene->view->up = glm::vec3(0,1,0);
-      context->window->scene->view->update();
-    }
-    if(key == GLFW_KEY_KP_3){
-      context->window->scene->view->cam = glm::vec3(1,0,0);
-      context->window->scene->view->right = glm::vec3(0,0,-1);
-      context->window->scene->view->up = glm::vec3(0,1,0);
-      context->window->scene->view->update();
-    }
-    if(key == GLFW_KEY_KP_7){
-      context->window->scene->view->cam = glm::vec3(0,1,0);
-      context->window->scene->view->right = glm::vec3(1,0,0);
-      context->window->scene->view->up = glm::vec3(0,0,-1);
-      context->window->scene->view->update();
-    }
-    if(key == GLFW_KEY_KP_5){
-      context->window->controls->ortho = !context->window->controls->ortho;
-      context->window->scene->view->update();
-    }
-
+    if(key == GLFW_KEY_KP_1)
+      context->window->scene->view->frontView();
+    if(key == GLFW_KEY_KP_3)
+      context->window->scene->view->sideView();
+    if(key == GLFW_KEY_KP_7)
+      context->window->scene->view->upView();
+    if(key == GLFW_KEY_KP_5)
+      context->window->scene->view->toogleOrtho();
 
     if(key == GLFW_KEY_S){
       for(Object* obj : context->window->scene->objects){
@@ -218,12 +218,18 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
   glm::vec3* cam   = &view->cam;
   glm::vec3* up    = &view->up;
   glm::vec3* right = &view->right;
+  CONTROLS   type  = context->window->TYPE;
   //Clic gauche: rotation
   if(context->window->controls->buttons[0]){
     glm::vec2 diff = pos - old;
     if(context->window->scene->selected){
-      glm::quat qRot =  glm::angleAxis(0.01f * (float)(diff.y), *right) *
-                        glm::angleAxis(0.01f * (float)(diff.x), glm::vec3(0,1,0));
+      glm::quat qRot;
+      if(type == MANIPULATION)
+        qRot =  glm::angleAxis(0.01f * (float)(diff.y), *right) *
+                glm::angleAxis(0.01f * (float)(diff.x), *up);
+      else
+        qRot =  glm::angleAxis(0.01f * (float)(diff.y), *right) *
+                glm::angleAxis(0.01f * (float)(diff.x), glm::vec3(0,1,0));
       glm::vec3 center = glm::vec3(0);//context->window->scene->center;
       glm::mat4 rot = glm::inverse(glm::translate(glm::mat4(1), center) * glm::toMat4(qRot) * glm::translate(glm::mat4(1), -center));
       *cam   = glm::vec3( rot * glm::vec4(*cam,0) );
@@ -231,7 +237,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       *up    = glm::cross(*right, -*cam);
       view->update();
     }
-    else{
+    else if (type!=MANIPULATION){
       glm::quat rotX, rotY;
       glm::mat4 rot;
       if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS){
@@ -265,7 +271,6 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
           //glm::vec3 newPos = c - sc;
           glm::vec3 center = glm::vec3((context->window->scene->active->MODEL)[3])+sc;
           glm::vec3 newPos = glm::vec3( glm::translate(glm::mat4(1), center) * rot * glm::translate(glm::mat4(1), -center) * glm::vec4(c,1) )-sc;
-          print(newPos);
           if(newPos.x > bounds.x || newPos.x < -bounds.x || newPos.z > bounds.z || newPos.z < -bounds.z)
             rot = glm::mat4(1);
         }
@@ -281,7 +286,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       glm::vec3 tr, inter, oldInter;
       if(intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), pos, inter) && intersects(context->window, glm::vec3(0,0,0), glm::vec3(0,1,0), old, oldInter))
         tr = inter-oldInter;
-      if(context->window == context->windows[0])
+      if(type == GALERY)
         tr.x = 0;
       context->window->scene->center = context->window->scene->center + tr;
       for(Object* obj : context->window->scene->objects)
@@ -325,7 +330,7 @@ static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
       *M = glm::translate(glm::mat4(1) , tr) * *M;
     }
   }
-  //Clic droit on sélectionne
+  //Clic droit on change les couleurs
   if(context->window->controls->buttons[2]){
     /*
     float dY = ypos - context->window->controls->oldPos.y;
@@ -399,7 +404,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     for(Object* o : context->window->scene->objects){
       if(o->id == id-1){
         std::cout << o->meshfile << std::endl;
-        print(o->size);
         obj = o;
       }
       else

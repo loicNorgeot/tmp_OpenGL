@@ -59,7 +59,6 @@ void Object::computeBoundingBox(){
 
   //Used for trespassing
   size = 0.5f * (bbmax-bbmin);;
-  print(size);
 
   parentScene->scale = 1.0f;// * std::max( 0.5f/maxDim, parentScene->scale);
   //scale       = parentScene->scale;// / maxDim;
@@ -294,6 +293,8 @@ void Object::createAndBindBuffers(){
 }
 
 void Object::render(){
+
+
   /*
   if(cBuffer!=-1){
     for(int i = 0 ; i < colors.size() ; i+=3){
@@ -351,11 +352,10 @@ void Object::render(){
     glEnable(GL_CULL_FACE);
     glCullFace(cull);
   }
-  //glDisable(GL_CULL_FACE);
+  //if(clipped)
+  glDisable(GL_CULL_FACE);
 
   //Transformations
-  //if(context->window->controls->animate)
-  //  MODEL = glm::rotate(glm::mat4(1), 0.01f, parentScene->view->up) * MODEL;
   glm::mat4 MVP = parentScene->view->PROJ * parentScene->view->VIEW * glm::scale(MODEL, glm::vec3(parentScene->scale));
 
   //According parameters to the mesh
@@ -384,6 +384,7 @@ void Object::render(){
     send(ID, glm::vec3(1,1,1),                  "objectColor");
   send(ID, 0,                                   "uSecondPass");
   send(ID, 0, "picking");
+  send(ID, (int)clipped,"clipping");
 
   //Drawing
   glBindVertexArray(VAO);
@@ -400,6 +401,7 @@ void Object::render(){
   }
   else
     glDrawElements(GL_TRIANGLES, indTri.size(), GL_UNSIGNED_INT, (void*)0);
+  send(ID, 0,"clipping");
   glBindVertexArray(0);
 }
 void Object::pickingRender(){

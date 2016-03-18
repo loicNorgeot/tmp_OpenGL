@@ -64,4 +64,7 @@ void Axis::render(){
   glBindVertexArray(0);
   glEnable(GL_DEPTH_TEST);
   glViewport(0,0,w,h);
+
+  glBindVertexArray(0);
+  glUseProgram(0);
 }

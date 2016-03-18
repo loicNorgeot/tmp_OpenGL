@@ -28,6 +28,9 @@ uniform int uColor;
 //picking rendering
 uniform int picking;
 
+//clipping
+uniform int clipping;
+
 uniform mat4 MVP;
 uniform mat4 M;
 uniform mat4 V;
@@ -38,7 +41,15 @@ out vec3 out_color;
 vec3 light(mat4 light_matrix, vec3 mater_color, int light);
 
 void main(){
-
+  if(clipping==1){
+    if(frag_position.x<-0.001 || frag_position.x>0.001){
+      discard;
+    }
+    else{
+      out_color = vec3(1,1,1);
+      return;
+    }
+  }
   vec3 temp_color = vec3(1,1,1);
 
   mat4 LM = mat4(

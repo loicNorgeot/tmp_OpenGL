@@ -13,7 +13,8 @@ public:
   glm::vec3 look;
   glm::vec3 up;
   glm::vec3 right;
-  float zoom;
+  bool      ortho;
+  float     zoom;
 
   glm::mat4 VIEW;
   glm::mat4 PROJ;
@@ -23,6 +24,11 @@ public:
 
   View(Scene * scene);
   void update();
+
+  void upView();
+  void frontView();
+  void sideView();
+  void toogleOrtho();
 };
 
 #endif
